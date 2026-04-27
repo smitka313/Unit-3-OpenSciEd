@@ -359,6 +359,49 @@
 
     .print-btn { margin-top: 10px; width: 100%; }
 
+    .search-input {
+      width: 100%;
+      margin: 0 0 10px;
+      padding: 10px 12px;
+      border: 2px solid var(--line);
+      border-radius: 12px;
+      background: white;
+      font: inherit;
+    }
+
+    .search-results {
+      display: grid;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+
+    .search-result {
+      border: 1px solid var(--line);
+      background: #f8fafc;
+      border-radius: 12px;
+      padding: 8px 10px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      text-align: left;
+    }
+
+    .search-result:hover { background: #eff6ff; border-color: #bfdbfe; }
+
+    .progress-list {
+      display: grid;
+      gap: 6px;
+      margin-top: 10px;
+      font-size: 0.92rem;
+      color: var(--ink);
+    }
+
+    .mini-btn {
+      margin-top: 10px;
+      width: 100%;
+      padding: 8px 10px !important;
+      font-size: 0.9rem;
+    }
+
     @media (max-width: 920px) {
       .dashboard { grid-template-columns: 1fr; }
       aside { position: static; }
@@ -382,6 +425,10 @@
 
   <div class="dashboard">
     <aside>
+      <div class="nav-title">Search Dashboard</div>
+      <input id="searchInput" class="search-input" type="search" placeholder="Search topics, terms, or skills..." oninput="runSearch()" />
+      <div id="searchResults" class="search-results"></div>
+
       <div class="nav-title">Review Sections</div>
       <button class="nav-btn active" data-section="overview">🏠 Overview</button>
       <button class="nav-btn" data-section="cancer">🧫 Cancer Basics</button>
@@ -394,9 +441,16 @@
       <button class="nav-btn" data-section="synthesis">✍️ Final Synthesis</button>
 
       <div class="score-card">
-        <strong>Practice Score: <span id="score">0</span>/<span id="attempts">0</span></strong>
-        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-        <small>Score updates when you answer Practice Zone questions.</small>
+        <strong>Student Progress</strong>
+        <small>Progress saves on this device.</small>
+        <div class="progress-bar"><div class="progress-fill" id="overallProgressFill"></div></div>
+        <small><span id="overallProgressText">0%</span> complete</small>
+        <div class="progress-list">
+          <div>Sections visited: <strong><span id="sectionsVisited">0</span>/9</strong></div>
+          <div>Quiz score: <strong><span id="score">0</span>/<span id="attempts">0</span></strong></div>
+          <div>Flashcards viewed: <strong><span id="cardsViewed">0</span>/8</strong></div>
+        </div>
+        <button class="secondary mini-btn" onclick="resetProgress()">Reset Progress</button>
       </div>
 
       <button class="secondary print-btn" onclick="window.print()">Print Review</button>
@@ -724,15 +778,88 @@
   <script>
     const sections = document.querySelectorAll('.section');
     const navButtons = document.querySelectorAll('.nav-btn');
+    const sectionIds = Array.from(sections).map(section => section.id);
+
+    let progress = JSON.parse(localStorage.getItem('unit3DashboardProgress') || '{"visited":[],"score":0,"attempts":0,"cardsViewed":[]}');
+
+    function saveProgress() {
+      localStorage.setItem('unit3DashboardProgress', JSON.stringify(progress));
+      updateProgressDisplay();
+    }
+
+    function markVisited(sectionId) {
+      if (!progress.visited.includes(sectionId)) {
+        progress.visited.push(sectionId);
+        saveProgress();
+      }
+    }
+
+    function goToSection(sectionId) {
+      navButtons.forEach(b => b.classList.toggle('active', b.dataset.section === sectionId));
+      sections.forEach(sec => sec.classList.toggle('active', sec.id === sectionId));
+      markVisited(sectionId);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
 
     navButtons.forEach(btn => {
-      btn.addEventListener('click', () => {
-        navButtons.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        sections.forEach(sec => sec.classList.remove('active'));
-        document.getElementById(btn.dataset.section).classList.add('active');
-      });
+      btn.addEventListener('click', () => goToSection(btn.dataset.section));
     });
+
+    function updateProgressDisplay() {
+      const sectionsVisited = progress.visited.length;
+      const cardsViewed = progress.cardsViewed.length;
+      const quizPct = progress.attempts ? progress.score / progress.attempts : 0;
+      const sectionPct = sectionsVisited / sectionIds.length;
+      const cardPct = cardsViewed / flashcards.length;
+      const overall = Math.round(((sectionPct * 0.45) + (quizPct * 0.40) + (cardPct * 0.15)) * 100);
+
+      document.getElementById('sectionsVisited').textContent = sectionsVisited;
+      document.getElementById('cardsViewed').textContent = cardsViewed;
+      document.getElementById('score').textContent = progress.score;
+      document.getElementById('attempts').textContent = progress.attempts;
+      document.getElementById('overallProgressText').textContent = overall + '%';
+      document.getElementById('overallProgressFill').style.width = overall + '%';
+    }
+
+    function resetProgress() {
+      progress = { visited: [], score: 0, attempts: 0, cardsViewed: [] };
+      score = 0;
+      attempts = 0;
+      saveProgress();
+      renderQuiz();
+    }
+
+    function runSearch() {
+      const query = document.getElementById('searchInput').value.trim().toLowerCase();
+      const results = document.getElementById('searchResults');
+      results.innerHTML = '';
+      if (!query) return;
+
+      const matches = [];
+      sections.forEach(section => {
+        const text = section.textContent.toLowerCase();
+        if (text.includes(query)) {
+          const title = section.querySelector('h2')?.textContent || section.id;
+          matches.push({ id: section.id, title });
+        }
+      });
+
+      if (!matches.length) {
+        const div = document.createElement('div');
+        div.className = 'search-result';
+        div.textContent = 'No matches found.';
+        results.appendChild(div);
+        return;
+      }
+
+      matches.slice(0, 6).forEach(match => {
+        const btn = document.createElement('button');
+        btn.className = 'search-result';
+        btn.textContent = match.title;
+        btn.onclick = () => goToSection(match.id);
+        results.appendChild(btn);
+      });
+    }
 
     function sanitizeSeq(seq, allowed) {
       return seq.toUpperCase().replace(/[^A-Z]/g, '').split('').filter(ch => allowed.includes(ch)).join('');
@@ -761,7 +888,7 @@
     }
 
     const codonTable = {
-      AUG:'Methionine', UCC:'Serine', AAU:'Asparagine', UGU:'Cysteine', CCC:'Proline', GAG:'Glutamic acid', UGG:'Tryptophan', CAC:'Histidine', CUA:'Leucine', GGG:'Glycine', UAA:'STOP', UAG:'STOP', UGA:'STOP', GUC:'Valine', CAA:'Glutamine', GAA:'Glutamic acid', UUU:'Phenylalanine', UUC:'Phenylalanine', AUA:'Isoleucine', AUU:'Isoleucine', AUC:'Isoleucine', GCU:'Alanine', CGA:'Arginine', ACC:'Threonine'
+      AUG:'Methionine', UCC:'Serine', AAU:'Asparagine', UGU:'Cysteine', CCC:'Proline', GAG:'Glutamic acid', UGG:'Tryptophan', CAC:'Histidine', CUA:'Leucine', GGG:'Glycine', UAA:'STOP', UAG:'STOP', UGA:'STOP', GUC:'Valine', CAA:'Glutamine', GAA:'Glutamic acid', UUU:'Phenylalanine', UUC:'Phenylalanine', AUA:'Isoleucine', AUU:'Isoleucine', AUC:'Isoleucine', GCU:'Alanine', CGA:'Arginine', ACC:'Threonine', CUG:'Leucine', GAC:'Aspartic acid', GGU:'Glycine', UAC:'Tyrosine', ACG:'Threonine', UUA:'Leucine', ACA:'Threonine', CCU:'Proline', AGG:'Arginine', UCA:'Serine', CGC:'Arginine', GCA:'Alanine', UCU:'Serine'
     };
 
     function transcribeTranslate() {
@@ -780,7 +907,9 @@
       ['What is metastasis?', 'Cancer spreading to other parts of the body.'],
       ['What is Chargaff’s rule?', 'A pairs with T, and G pairs with C; A and T are present in similar amounts, as are G and C.'],
       ['What is a frameshift?', 'An insertion or deletion that changes how codons are read.'],
-      ['How does DNA determine protein?', 'The base sequence determines RNA codons, which determine amino acid order.']
+      ['How does DNA determine protein?', 'The base sequence determines RNA codons, which determine amino acid order.'],
+      ['Why does protein shape matter?', 'Protein shape determines how well a protein can do its job.'],
+      ['Why can older people have higher cancer risk?', 'Older people have had more cell divisions, so there have been more chances for mutations to build up.']
     ];
     let cardIndex = 0;
     let cardFlipped = false;
@@ -788,11 +917,14 @@
     function renderCard() {
       document.getElementById('flashLabel').textContent = cardFlipped ? 'Answer' : 'Question';
       document.getElementById('flashText').textContent = flashcards[cardIndex][cardFlipped ? 1 : 0];
+      if (!progress.cardsViewed.includes(cardIndex)) {
+        progress.cardsViewed.push(cardIndex);
+        saveProgress();
+      }
     }
     function flipCard() { cardFlipped = !cardFlipped; renderCard(); }
     function nextCard() { cardIndex = (cardIndex + 1) % flashcards.length; cardFlipped = false; renderCard(); }
     function prevCard() { cardIndex = (cardIndex - 1 + flashcards.length) % flashcards.length; cardFlipped = false; renderCard(); }
-    renderCard();
 
     const quiz = [
       {q:'Which phase copies DNA?', choices:['G1','S','G2','M'], a:1, exp:'DNA replication occurs during S phase.'},
@@ -802,11 +934,33 @@
       {q:'Why can taller people have higher cancer risk?', choices:['They have no p53','They have more cells','They have less DNA','Their DNA cannot unzip'], a:1, exp:'More cells means more total cell divisions and more chances for mutation.'},
       {q:'What does AUG usually signal?', choices:['Stop','Start','Mutation','Deletion'], a:1, exp:'AUG is the start codon and codes for methionine.'},
       {q:'Which mutation often causes the biggest effect?', choices:['Silent','Frameshift','No mutation','Same-sense'], a:1, exp:'Frameshifts can change many codons after the mutation.'},
-      {q:'What does p53 help prevent?', choices:['All protein formation','Damaged cells dividing','DNA unzipping','RNA pairing with U'], a:1, exp:'p53 helps stop or repair cells with DNA damage.'}
+      {q:'What does p53 help prevent?', choices:['All protein formation','Damaged cells dividing','DNA unzipping','RNA pairing with U'], a:1, exp:'p53 helps stop or repair cells with DNA damage.'},
+      {q:'What are the sides of DNA made of?', choices:['Base pairs','Sugar and phosphate','Amino acids','RNA codons'], a:1, exp:'The DNA backbone is made of sugar and phosphate.'},
+      {q:'What are the rungs of DNA made of?', choices:['Base pairs','Sugar only','Phosphate only','Proteins'], a:0, exp:'The rungs are paired bases: A-T and G-C.'},
+      {q:'If A is 24%, what is T most likely?', choices:['12%','24%','48%','76%'], a:1, exp:'Chargaff’s rule says A and T are present in similar amounts.'},
+      {q:'What does antiparallel mean?', choices:['Same direction','Opposite directions','Random order','No structure'], a:1, exp:'The two DNA strands run in opposite directions.'},
+      {q:'What happens first in DNA replication?', choices:['DNA unzips','Protein folds','RNA leaves nucleus','Cell divides'], a:0, exp:'DNA must unzip so bases are exposed for copying.'},
+      {q:'What is the purpose of checkpoints?', choices:['Speed up division','Check for errors','Make RNA','Destroy all cells'], a:1, exp:'Checkpoints help make sure the cell is ready to continue.'},
+      {q:'What happens if mutations are not repaired?', choices:['They always disappear','Cells may become cancerous','DNA turns into RNA','All proteins improve'], a:1, exp:'Unrepaired mutations can affect cell behavior and contribute to cancer.'},
+      {q:'Which is a DNA to RNA transcription rule?', choices:['A → U','A → T','G → T','C → A'], a:0, exp:'During transcription, DNA A pairs with RNA U.'},
+      {q:'What is a codon?', choices:['Three RNA bases','A tumor','A chromosome pair','A DNA backbone'], a:0, exp:'A codon is a group of three RNA bases.'},
+      {q:'Why does protein shape matter?', choices:['Shape affects function','Shape changes DNA letters','Shape stops codons','Shape removes chromosomes'], a:0, exp:'A protein’s shape helps determine what it can do.'},
+      {q:'Which mutation changes one base?', choices:['Substitution','Deletion','Insertion','Metastasis'], a:0, exp:'A substitution replaces one base with another.'},
+      {q:'Which mutation removes bases?', choices:['Insertion','Deletion','Silent','Benign'], a:1, exp:'A deletion removes bases from the sequence.'},
+      {q:'Why did scientists study animals like mice?', choices:['Cancer only happens in mice','They help model cancer in living systems','Mice have no DNA','Mice never get tumors'], a:1, exp:'Animal models help scientists study cancer in a living system.'},
+      {q:'Why were large animals expected to get more cancer?', choices:['More cells and longer lives','No cell cycle','Less DNA repair','They are all polluted'], a:0, exp:'More cells and more time should mean more chances for mutations.'},
+      {q:'Why do elephants rarely get cancer?', choices:['Extra p53 copies','No chromosomes','No cell division','Only benign tumors'], a:0, exp:'Extra p53 copies may help elephants protect against cancer.'},
+      {q:'What is metastasis?', choices:['DNA copying','Cancer spreading','Protein folding','Cell growth only'], a:1, exp:'Metastasis means cancer has spread.'},
+      {q:'What is mitosis?', choices:['Cell division','DNA transcription','Protein folding','Base pairing'], a:0, exp:'M phase, or mitosis, is when the cell divides.'},
+      {q:'A cell with twice the usual amount of DNA is likely in:', choices:['G1','G2','Before S','No phase'], a:1, exp:'After S phase, DNA has been copied, so the cell has doubled DNA.'},
+      {q:'What happens if a cell divides with damaged DNA?', choices:['Daughter cells may have errors','DNA becomes perfect','p53 disappears','No effect is possible'], a:0, exp:'Damaged DNA can be passed into daughter cells.'},
+      {q:'What does DNA determine directly?', choices:['The order of RNA bases and proteins','The age of the organism only','The number of tissues','The color of ribosomes'], a:0, exp:'DNA sequence determines RNA codons and amino acid order.'},
+      {q:'Which chain best connects DNA to disease?', choices:['DNA change → protein change → cell function change','Protein → DNA → codon → sugar','Cell → organ → nucleotide → base','RNA → tissue → p53 → sugar'], a:0, exp:'A DNA change can lead to protein and cell function changes.'},
+      {q:'Why do not all mutations cause disease?', choices:['Some do not change protein function','All are fixed immediately','DNA has no function','Mutations only happen in plants'], a:0, exp:'Some mutations are silent or do not strongly affect protein function.'}
     ];
     let quizIndex = 0;
-    let score = 0;
-    let attempts = 0;
+    let score = progress.score || 0;
+    let attempts = progress.attempts || 0;
 
     function renderQuiz() {
       const item = quiz[quizIndex];
@@ -819,7 +973,7 @@
         const btn = document.createElement('button');
         btn.className = 'choice';
         btn.textContent = choice;
-        btn.onclick = () => answerQuiz(idx, btn);
+        btn.onclick = () => answerQuiz(idx);
         choicesDiv.appendChild(btn);
       });
     }
@@ -833,16 +987,18 @@
         if (i === idx && i !== item.a) b.classList.add('wrong');
       });
       attempts++;
+      progress.attempts = attempts;
       const fb = document.getElementById('feedback');
       if (idx === item.a) {
         score++;
+        progress.score = score;
         fb.className = 'feedback good show';
         fb.textContent = 'Correct! ' + item.exp;
       } else {
         fb.className = 'feedback bad show';
         fb.textContent = 'Not quite. ' + item.exp;
       }
-      updateScore();
+      saveProgress();
     }
 
     function nextQuiz() {
@@ -850,21 +1006,10 @@
       renderQuiz();
     }
 
-    function resetScore() {
-      score = 0;
-      attempts = 0;
-      updateScore();
-      renderQuiz();
-    }
-
-    function updateScore() {
-      document.getElementById('score').textContent = score;
-      document.getElementById('attempts').textContent = attempts;
-      const pct = attempts ? Math.round((score / attempts) * 100) : 0;
-      document.getElementById('progressFill').style.width = pct + '%';
-    }
-
+    markVisited('overview');
+    renderCard();
     renderQuiz();
+    updateProgressDisplay();
   </script>
 </body>
 </html>
