@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Unit 3 Interactive Review Dashboard</title>
+  <style>
+    :root {
+      --bg: #f6f7fb;
+      --card: #ffffff;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --accent2: #0f766e;
+      --danger: #dc2626;
+      --good: #16a34a;
+      --warn: #f59e0b;
+      --line: #e5e7eb;
+      --shadow: 0 10px 25px rgba(17, 24, 39, 0.08);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: linear-gradient(135deg, #eef2ff 0%, #f8fafc 45%, #ecfeff 100%);
+      color: var(--ink);
+    }
+
+    header {
+      padding: 28px 22px 18px;
+      text-align: center;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: clamp(1.8rem, 4vw, 3.2rem);
+      letter-spacing: -0.04em;
+    }
+
+    header p {
+      margin: 10px auto 0;
+      max-width: 850px;
+      color: var(--muted);
+      font-size: 1.05rem;
+      line-height: 1.45;
+    }
+
+    .dashboard {
+      display: grid;
+      grid-template-columns: 290px 1fr;
+      gap: 22px;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 18px 22px 40px;
+    }
+
+    aside {
+      background: rgba(255,255,255,0.8);
+      border: 1px solid rgba(229,231,235,0.9);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: var(--shadow);
+      position: sticky;
+      top: 16px;
+      height: fit-content;
+    }
+
+    .nav-title {
+      font-weight: 800;
+      font-size: 0.9rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin: 4px 8px 12px;
+    }
+
+    .nav-btn {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      text-align: left;
+      padding: 12px 12px;
+      border-radius: 13px;
+      cursor: pointer;
+      font-size: 0.97rem;
+      color: var(--ink);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: 0.18s ease;
+    }
+
+    .nav-btn:hover { background: #eff6ff; }
+    .nav-btn.active { background: var(--accent); color: white; }
+
+    .score-card {
+      margin-top: 16px;
+      padding: 14px;
+      border-radius: 15px;
+      background: #f8fafc;
+      border: 1px solid var(--line);
+    }
+
+    .score-card strong { font-size: 1.15rem; }
+    .score-card small { color: var(--muted); display: block; margin-top: 4px; }
+
+    main {
+      min-width: 0;
+    }
+
+    .section {
+      display: none;
+      animation: fadeIn 0.25s ease;
+    }
+    .section.active { display: block; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 16px;
+    }
+
+    .card {
+      background: rgba(255,255,255,0.9);
+      border: 1px solid rgba(229,231,235,0.9);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 20px;
+    }
+
+    .span-12 { grid-column: span 12; }
+    .span-8 { grid-column: span 8; }
+    .span-6 { grid-column: span 6; }
+    .span-4 { grid-column: span 4; }
+
+    h2, h3 { margin-top: 0; }
+    h2 { font-size: 2rem; letter-spacing: -0.03em; }
+    h3 { font-size: 1.25rem; }
+    p, li { line-height: 1.5; }
+    .muted { color: var(--muted); }
+
+    .pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .pill {
+      background: #eef2ff;
+      color: #3730a3;
+      padding: 8px 10px;
+      border-radius: 999px;
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    .concept-map {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: center;
+      margin-top: 10px;
+    }
+
+    .node {
+      border-radius: 14px;
+      padding: 13px 15px;
+      background: #f8fafc;
+      border: 2px solid var(--line);
+      font-weight: 800;
+      min-width: 110px;
+      text-align: center;
+    }
+
+    .arrow { color: var(--muted); font-size: 1.6rem; font-weight: 900; }
+
+    .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+    .tab {
+      border: 1px solid var(--line);
+      background: white;
+      padding: 9px 12px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+    .tab.active { background: var(--accent2); color: white; border-color: var(--accent2); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    details {
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px 14px;
+      margin: 10px 0;
+    }
+    summary { cursor: pointer; font-weight: 800; }
+
+    .flashcard {
+      min-height: 190px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, #ffffff, #eef2ff);
+      border: 1px solid var(--line);
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    .flashcard .label { color: var(--muted); font-size: 0.9rem; margin-bottom: 8px; }
+    .flashcard .big { font-size: 1.5rem; font-weight: 900; line-height: 1.25; }
+
+    .controls { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+    button.primary, button.secondary, button.good {
+      border: 0;
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    button.primary { background: var(--accent); color: white; }
+    button.secondary { background: #e5e7eb; color: var(--ink); }
+    button.good { background: var(--good); color: white; }
+
+    .quiz-question {
+      font-size: 1.15rem;
+      font-weight: 850;
+      margin-bottom: 12px;
+    }
+    .choice {
+      display: block;
+      width: 100%;
+      text-align: left;
+      margin: 8px 0;
+      padding: 12px 14px;
+      background: white;
+      border: 2px solid var(--line);
+      border-radius: 13px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+    .choice.correct { border-color: var(--good); background: #dcfce7; }
+    .choice.wrong { border-color: var(--danger); background: #fee2e2; }
+
+    .feedback {
+      margin-top: 12px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      display: none;
+      font-weight: 700;
+    }
+    .feedback.show { display: block; }
+    .feedback.good { background: #dcfce7; color: #14532d; }
+    .feedback.bad { background: #fee2e2; color: #7f1d1d; }
+
+    input, textarea, select {
+      width: 100%;
+      padding: 11px 12px;
+      border: 2px solid var(--line);
+      border-radius: 12px;
+      font: inherit;
+      background: white;
+    }
+
+    textarea { min-height: 110px; resize: vertical; }
+
+    .sequence-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .mini-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      overflow: hidden;
+      border-radius: 12px;
+    }
+    .mini-table th, .mini-table td {
+      border: 1px solid var(--line);
+      padding: 10px;
+      text-align: left;
+    }
+    .mini-table th { background: #f1f5f9; }
+
+    .progress-bar {
+      height: 12px;
+      background: #e5e7eb;
+      border-radius: 999px;
+      overflow: hidden;
+      margin: 10px 0;
+    }
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      transition: width 0.25s ease;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #fef3c7;
+      color: #92400e;
+      border-radius: 999px;
+      padding: 5px 9px;
+      font-weight: 850;
+      font-size: 0.85rem;
+      margin-left: 6px;
+    }
+
+    .dna-visual {
+      height: 170px;
+      width: 100%;
+      position: relative;
+      overflow: hidden;
+      background: #f8fafc;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+    }
+    .strand {
+      position: absolute;
+      left: 5%; right: 5%; height: 4px;
+      background: var(--accent);
+      top: 45%;
+      transform: rotate(9deg);
+      border-radius: 999px;
+    }
+    .strand.two { background: var(--accent2); transform: rotate(-9deg); top: 52%; }
+    .rung {
+      position: absolute;
+      width: 4px; height: 45px;
+      background: #94a3b8;
+      top: 39%;
+      border-radius: 999px;
+      transform: rotate(0deg);
+    }
+    .base-label {
+      position: absolute;
+      top: 19%;
+      transform: translateX(-50%);
+      font-weight: 900;
+      color: #334155;
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 3px 7px;
+    }
+
+    .print-btn { margin-top: 10px; width: 100%; }
+
+    .search-input {
+      width: 100%;
+      margin: 0 0 10px;
+      padding: 10px 12px;
+      border: 2px solid var(--line);
+      border-radius: 12px;
+      background: white;
+      font: inherit;
+    }
+
+    .search-results {
+      display: grid;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+
+    .search-result {
+      border: 1px solid var(--line);
+      background: #f8fafc;
+      border-radius: 12px;
+      padding: 8px 10px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      text-align: left;
+    }
+
+    .search-result:hover { background: #eff6ff; border-color: #bfdbfe; }
+
+    .progress-list {
+      display: grid;
+      gap: 6px;
+      margin-top: 10px;
+      font-size: 0.92rem;
+      color: var(--ink);
+    }
+
+    .mini-btn {
+      margin-top: 10px;
+      width: 100%;
+      padding: 8px 10px !important;
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 920px) {
+      .dashboard { grid-template-columns: 1fr; }
+      aside { position: static; }
+      .span-8, .span-6, .span-4 { grid-column: span 12; }
+    }
+
+    @media print {
+      aside, .controls, .nav-title, button { display: none !important; }
+      body { background: white; }
+      .dashboard { display: block; padding: 0; }
+      .section { display: block !important; page-break-after: always; }
+      .card { box-shadow: none; border: 1px solid #ccc; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Unit 3 Interactive Review Dashboard</h1>
+    <p><strong>Driving Question:</strong> Who gets cancer, and why? Use this dashboard to review cancer, the cell cycle, DNA structure, mutations, p53, transcription, translation, and protein function.</p>
+  </header>
+
+  <div class="dashboard">
+    <aside>
+      <div class="nav-title">Search Dashboard</div>
+      <input id="searchInput" class="search-input" type="search" placeholder="Search topics, terms, or skills..." oninput="runSearch()" />
+      <div id="searchResults" class="search-results"></div>
+
+      <div class="nav-title">Review Sections</div>
+      <button class="nav-btn active" data-section="overview">🏠 Overview</button>
+      <button class="nav-btn" data-section="cancer">🧫 Cancer Basics</button>
+      <button class="nav-btn" data-section="patterns">📊 Patterns & Evidence</button>
+      <button class="nav-btn" data-section="cellcycle">🔄 Cell Cycle & p53</button>
+      <button class="nav-btn" data-section="dna">🧬 DNA Structure</button>
+      <button class="nav-btn" data-section="replication">🔁 Replication & Mutations</button>
+      <button class="nav-btn" data-section="protein">🧪 DNA → Protein</button>
+      <button class="nav-btn" data-section="practice">🎯 Practice Zone</button>
+      <button class="nav-btn" data-section="synthesis">✍️ Final Synthesis</button>
+
+      <div class="score-card">
+        <strong>Student Progress</strong>
+        <small>Progress saves on this device.</small>
+        <div class="progress-bar"><div class="progress-fill" id="overallProgressFill"></div></div>
+        <small><span id="overallProgressText">0%</span> complete</small>
+        <div class="progress-list">
+          <div>Sections visited: <strong><span id="sectionsVisited">0</span>/9</strong></div>
+          <div>Quiz score: <strong><span id="score">0</span>/<span id="attempts">0</span></strong></div>
+          <div>Flashcards viewed: <strong><span id="cardsViewed">0</span>/8</strong></div>
+        </div>
+        <button class="secondary mini-btn" onclick="resetProgress()">Reset Progress</button>
+      </div>
+
+      <button class="secondary print-btn" onclick="window.print()">Print Review</button>
+    </aside>
+
+    <main>
+      <section class="section active" id="overview">
+        <div class="grid">
+          <div class="card span-12">
+            <h2>Unit Big Picture</h2>
+            <p>This unit connects several models into one explanation: cancer can develop when DNA errors are not repaired and cells divide when they should not.</p>
+            <div class="concept-map">
+              <div class="node">DNA sequence</div><div class="arrow">→</div>
+              <div class="node">RNA codons</div><div class="arrow">→</div>
+              <div class="node">Amino acids</div><div class="arrow">→</div>
+              <div class="node">Protein shape</div><div class="arrow">→</div>
+              <div class="node">Cell function</div><div class="arrow">→</div>
+              <div class="node">Disease</div>
+            </div>
+          </div>
+          <div class="card span-6">
+            <h3>What students should be able to explain</h3>
+            <ul>
+              <li>How cancer is related to uncontrolled cell division.</li>
+              <li>How p53 helps prevent cancer by checking and repairing DNA problems.</li>
+              <li>Why age, height, and environment can affect cancer risk.</li>
+              <li>How DNA structure allows DNA to copy itself.</li>
+              <li>How mutations can change proteins and cell behavior.</li>
+            </ul>
+          </div>
+          <div class="card span-6">
+            <h3>Core Cause-and-Effect Chain</h3>
+            <p><strong>DNA replication error</strong> → mutation → possible protein change → changed cell behavior → uncontrolled division → tumor/cancer.</p>
+            <div class="pill-row">
+              <span class="pill">Cause & Effect</span>
+              <span class="pill">Structure & Function</span>
+              <span class="pill">Models</span>
+              <span class="pill">Evidence</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="cancer">
+        <div class="grid">
+          <div class="card span-8">
+            <h2>Cancer Basics</h2>
+            <p><strong>Cancer</strong> is uncontrolled cell division. Cancer cells can crowd out normal cells, damage tissues, and disrupt organ systems.</p>
+            <table class="mini-table">
+              <tr><th>Term</th><th>Meaning</th></tr>
+              <tr><td>Benign tumor</td><td>A mass of cells that does not invade or spread.</td></tr>
+              <tr><td>Malignant tumor</td><td>A cancerous tumor that invades nearby tissues and may spread.</td></tr>
+              <tr><td>Metastasis</td><td>Cancer cells spreading to other parts of the body.</td></tr>
+            </table>
+          </div>
+          <div class="card span-4">
+            <h3>Quick Check</h3>
+            <details><summary>What makes malignant tumors more dangerous?</summary><p>They invade nearby tissue and can spread throughout the body.</p></details>
+            <details><summary>Why can lung cancer make someone tired?</summary><p>Damaged lung tissue can reduce oxygen movement into the body, affecting energy and body systems.</p></details>
+          </div>
+          <div class="card span-12">
+            <h3>Notebook Discussion Prompts</h3>
+            <ol>
+              <li>How are cancer cells different from non-cancer cells?</li>
+              <li>How can cancer disrupt normal tissue or organ function?</li>
+              <li>Why is metastasis an important word when describing cancer?</li>
+            </ol>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="patterns">
+        <div class="grid">
+          <div class="card span-12">
+            <h2>Patterns & Evidence</h2>
+            <p>Scientists use data to notice patterns about who gets cancer and why. In this unit, major patterns included age, height, environment, and animal evidence.</p>
+          </div>
+          <div class="card span-4">
+            <h3>Age</h3>
+            <p>Older people have had more time for cells to divide and more chances for DNA mistakes to build up.</p>
+          </div>
+          <div class="card span-4">
+            <h3>Height</h3>
+            <p>Taller people generally have more cells, which means more total cell divisions and more chances for mutation.</p>
+          </div>
+          <div class="card span-4">
+            <h3>Environment</h3>
+            <p>Pollution, smoking, radiation, and other factors can increase mutation rates or cancer risk.</p>
+          </div>
+          <div class="card span-6">
+            <h3>Peto’s Paradox</h3>
+            <p>Large, long-lived animals were expected to get more cancer because they have more cells and more cell divisions. But whales and elephants have low cancer rates, raising a new question: what protects them?</p>
+          </div>
+          <div class="card span-6">
+            <h3>Elephants & p53</h3>
+            <p>Elephants have many copies of p53 compared with humans. More p53 protection may help damaged cells get repaired or destroyed before cancer develops.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="cellcycle">
+        <div class="grid">
+          <div class="card span-12">
+            <h2>Cell Cycle & p53</h2>
+            <p>The cell cycle explains how one cell becomes two cells. Checkpoints help prevent damaged cells from dividing.</p>
+            <div class="concept-map">
+              <div class="node">G1<br><small>growth</small></div><div class="arrow">→</div>
+              <div class="node">S<br><small>DNA copied</small></div><div class="arrow">→</div>
+              <div class="node">G2<br><small>prep/check</small></div><div class="arrow">→</div>
+              <div class="node">M<br><small>division</small></div>
+            </div>
+          </div>
+          <div class="card span-6">
+            <h3>p53 as a Checkpoint Protein</h3>
+            <ul>
+              <li>Checks whether the cell is ready to continue.</li>
+              <li>Helps detect and repair DNA errors.</li>
+              <li>Can stop the cell cycle or lead to cell destruction if damage is serious.</li>
+            </ul>
+          </div>
+          <div class="card span-6">
+            <h3>When p53 Fails</h3>
+            <p>If p53 does not work correctly, cells may skip checkpoints and divide with damaged DNA. This can produce abnormal daughter cells and contribute to cancer.</p>
+          </div>
+          <div class="card span-12">
+            <h3>Model Prompt</h3>
+            <p>Explain what the Divide & Conquer game represented. Include phases, checkpoints, p53, and what happened when checkpoints were skipped.</p>
+            <textarea placeholder="Write your explanation here..."></textarea>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="dna">
+        <div class="grid">
+          <div class="card span-8">
+            <h2>DNA Structure</h2>
+            <p>DNA is a double helix made of repeating units called nucleotides. Each nucleotide has a sugar, phosphate, and base.</p>
+            <div class="dna-visual" aria-label="DNA visual">
+              <div class="strand"></div><div class="strand two"></div>
+              <div class="rung" style="left: 14%;"></div><span class="base-label" style="left: 14%;">A–T</span>
+              <div class="rung" style="left: 28%;"></div><span class="base-label" style="left: 28%;">G–C</span>
+              <div class="rung" style="left: 42%;"></div><span class="base-label" style="left: 42%;">T–A</span>
+              <div class="rung" style="left: 56%;"></div><span class="base-label" style="left: 56%;">C–G</span>
+              <div class="rung" style="left: 70%;"></div><span class="base-label" style="left: 70%;">A–T</span>
+              <div class="rung" style="left: 84%;"></div><span class="base-label" style="left: 84%;">G–C</span>
+            </div>
+          </div>
+          <div class="card span-4">
+            <h3>Base Pairing</h3>
+            <table class="mini-table">
+              <tr><th>Base</th><th>Pairs With</th></tr>
+              <tr><td>A</td><td>T</td></tr>
+              <tr><td>T</td><td>A</td></tr>
+              <tr><td>G</td><td>C</td></tr>
+              <tr><td>C</td><td>G</td></tr>
+            </table>
+          </div>
+          <div class="card span-6">
+            <h3>Chargaff’s Rule</h3>
+            <p>The amount of adenine is about equal to thymine, and the amount of guanine is about equal to cytosine.</p>
+            <p><strong>If A = 24%, then T = 24%.</strong></p>
+          </div>
+          <div class="card span-6">
+            <h3>Structure → Function</h3>
+            <p>DNA can unzip because the bases are paired in the center. Each side can be used as a template to build a new matching strand.</p>
+          </div>
+          <div class="card span-12">
+            <h3>Complement Builder</h3>
+            <p>Type a DNA sequence using A, T, G, and C. The dashboard will build the complementary strand.</p>
+            <input id="dnaInput" placeholder="Example: ATGCCATA" />
+            <div class="controls"><button class="primary" onclick="makeComplement()">Build Complement</button></div>
+            <p><strong>Complement:</strong> <span id="dnaComplement">—</span></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="replication">
+        <div class="grid">
+          <div class="card span-12">
+            <h2>DNA Replication & Mutations</h2>
+            <p>DNA replication happens during S phase. DNA unwinds and unzips, then complementary bases are added to create new copies.</p>
+          </div>
+          <div class="card span-6">
+            <h3>Replication Steps</h3>
+            <ol>
+              <li>DNA unwinds and unzips.</li>
+              <li>Each original strand acts as a template.</li>
+              <li>Complementary bases pair with exposed bases.</li>
+              <li>Two DNA molecules form.</li>
+            </ol>
+          </div>
+          <div class="card span-6">
+            <h3>Mutation Types</h3>
+            <table class="mini-table">
+              <tr><th>Type</th><th>Meaning</th></tr>
+              <tr><td>Substitution</td><td>One base is replaced.</td></tr>
+              <tr><td>Insertion</td><td>Extra base(s) are added.</td></tr>
+              <tr><td>Deletion</td><td>Base(s) are removed.</td></tr>
+              <tr><td>Frameshift</td><td>Reading frame changes, often causing a large effect.</td></tr>
+            </table>
+          </div>
+          <div class="card span-12">
+            <h3>Mutation Analyzer</h3>
+            <p>Compare two DNA sequences. This simple tool looks for a basic substitution, insertion, deletion, or no change.</p>
+            <div class="sequence-grid">
+              <input id="origSeq" placeholder="Original DNA" />
+              <input id="mutSeq" placeholder="Mutated DNA" />
+            </div>
+            <div class="controls"><button class="primary" onclick="analyzeMutation()">Analyze</button></div>
+            <p><strong>Likely mutation type:</strong> <span id="mutationResult">—</span></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="protein">
+        <div class="grid">
+          <div class="card span-12">
+            <h2>DNA → RNA → Protein</h2>
+            <p>DNA stores information. During transcription, DNA is copied into RNA. During translation, RNA codons are read to build a chain of amino acids, which folds into a protein.</p>
+            <div class="concept-map">
+              <div class="node">DNA</div><div class="arrow">→</div>
+              <div class="node">RNA</div><div class="arrow">→</div>
+              <div class="node">Codons</div><div class="arrow">→</div>
+              <div class="node">Amino acids</div><div class="arrow">→</div>
+              <div class="node">Protein</div>
+            </div>
+          </div>
+          <div class="card span-6">
+            <h3>Transcription Rules</h3>
+            <table class="mini-table">
+              <tr><th>DNA</th><th>RNA</th></tr>
+              <tr><td>A</td><td>U</td></tr>
+              <tr><td>T</td><td>A</td></tr>
+              <tr><td>G</td><td>C</td></tr>
+              <tr><td>C</td><td>G</td></tr>
+            </table>
+          </div>
+          <div class="card span-6">
+            <h3>Translation Rules</h3>
+            <ul>
+              <li>RNA is read in groups of 3 called codons.</li>
+              <li>AUG is the start codon and codes for methionine.</li>
+              <li>Stop codons tell the ribosome to stop building the protein.</li>
+              <li>The order of amino acids affects protein shape and function.</li>
+            </ul>
+          </div>
+          <div class="card span-12">
+            <h3>Transcription & Translation Tool</h3>
+            <p>Enter a DNA template sequence. The tool will transcribe it into RNA and translate common codons used in this review.</p>
+            <input id="dnaToRnaInput" placeholder="Example: TACAGGTTAACT" />
+            <div class="controls"><button class="primary" onclick="transcribeTranslate()">Transcribe & Translate</button></div>
+            <p><strong>RNA:</strong> <span id="rnaOutput">—</span></p>
+            <p><strong>Amino acids:</strong> <span id="aaOutput">—</span></p>
+          </div>
+          <div class="card span-12">
+            <h3>Structure → Function Transfer</h3>
+            <p>Use this sentence frame for new examples: A change in DNA can change an RNA codon. That can change an amino acid. A different amino acid can change protein shape, and protein shape affects protein function.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="practice">
+        <div class="grid">
+          <div class="card span-6">
+            <h2>Flashcards</h2>
+            <div class="flashcard" id="flashcard" onclick="flipCard()">
+              <div class="label" id="flashLabel">Click to flip</div>
+              <div class="big" id="flashText">What does p53 do?</div>
+            </div>
+            <div class="controls">
+              <button class="secondary" onclick="prevCard()">Previous</button>
+              <button class="primary" onclick="nextCard()">Next</button>
+            </div>
+          </div>
+          <div class="card span-6">
+            <h2>Practice Quiz <span class="badge">Auto Check</span></h2>
+            <div class="quiz-question" id="quizQuestion">Loading...</div>
+            <div id="choices"></div>
+            <div class="feedback" id="feedback"></div>
+            <div class="controls">
+              <button class="primary" onclick="nextQuiz()">Next Question</button>
+              <button class="secondary" onclick="resetScore()">Reset Score</button>
+            </div>
+          </div>
+          <div class="card span-12">
+            <h3>Collaborative Review Questions</h3>
+            <ol>
+              <li>Explain how cancer can begin with a DNA replication mistake.</li>
+              <li>Why are frameshift mutations often more serious than silent mutations?</li>
+              <li>How does DNA structure make replication possible?</li>
+              <li>How does p53 connect the cell cycle and DNA repair?</li>
+              <li>How can one DNA change lead to a disease symptom?</li>
+            </ol>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="synthesis">
+        <div class="grid">
+          <div class="card span-12">
+            <h2>Final Synthesis</h2>
+            <p><strong>Prompt:</strong> How do cancer cells end up with different chromosomes, and what is the role of p53 in preventing this?</p>
+            <p>Your explanation should include DNA structure, DNA replication during S phase, mutations, chromosome differences, p53 repair/checkpoints, and cell division.</p>
+            <textarea placeholder="Write a complete explanation here..."></textarea>
+          </div>
+          <div class="card span-6">
+            <h3>Strong Answer Checklist</h3>
+            <ul>
+              <li>Mentions S phase and DNA replication.</li>
+              <li>Explains that mutations are changes or mistakes in DNA.</li>
+              <li>Explains how mutations can lead to chromosome differences.</li>
+              <li>Explains that p53 helps detect/repair mistakes or stop the cell.</li>
+              <li>Connects failed repair/checkpoints to cancer.</li>
+            </ul>
+          </div>
+          <div class="card span-6">
+            <h3>Useful Sentence Frame</h3>
+            <p>During S phase, DNA is copied. Sometimes mistakes happen when bases are mismatched. These mistakes are mutations. Normally, p53 helps detect and repair DNA problems or stops the cell from dividing. If p53 fails, the cell may divide with damaged DNA, producing cells with differences in chromosomes. If those cells continue dividing uncontrollably, cancer can develop.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const sections = document.querySelectorAll('.section');
+    const navButtons = document.querySelectorAll('.nav-btn');
+    const sectionIds = Array.from(sections).map(section => section.id);
+
+    let progress = JSON.parse(localStorage.getItem('unit3DashboardProgress') || '{"visited":[],"score":0,"attempts":0,"cardsViewed":[]}');
+
+    function saveProgress() {
+      localStorage.setItem('unit3DashboardProgress', JSON.stringify(progress));
+      updateProgressDisplay();
+    }
+
+    function markVisited(sectionId) {
+      if (!progress.visited.includes(sectionId)) {
+        progress.visited.push(sectionId);
+        saveProgress();
+      }
+    }
+
+    function goToSection(sectionId) {
+      navButtons.forEach(b => b.classList.toggle('active', b.dataset.section === sectionId));
+      sections.forEach(sec => sec.classList.toggle('active', sec.id === sectionId));
+      markVisited(sectionId);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    navButtons.forEach(btn => {
+      btn.addEventListener('click', () => goToSection(btn.dataset.section));
+    });
+
+    function updateProgressDisplay() {
+      const sectionsVisited = progress.visited.length;
+      const cardsViewed = progress.cardsViewed.length;
+      const quizPct = progress.attempts ? progress.score / progress.attempts : 0;
+      const sectionPct = sectionsVisited / sectionIds.length;
+      const cardPct = cardsViewed / flashcards.length;
+      const overall = Math.round(((sectionPct * 0.45) + (quizPct * 0.40) + (cardPct * 0.15)) * 100);
+
+      document.getElementById('sectionsVisited').textContent = sectionsVisited;
+      document.getElementById('cardsViewed').textContent = cardsViewed;
+      document.getElementById('score').textContent = progress.score;
+      document.getElementById('attempts').textContent = progress.attempts;
+      document.getElementById('overallProgressText').textContent = overall + '%';
+      document.getElementById('overallProgressFill').style.width = overall + '%';
+    }
+
+    function resetProgress() {
+      progress = { visited: [], score: 0, attempts: 0, cardsViewed: [] };
+      score = 0;
+      attempts = 0;
+      saveProgress();
+      renderQuiz();
+    }
+
+    function runSearch() {
+      const query = document.getElementById('searchInput').value.trim().toLowerCase();
+      const results = document.getElementById('searchResults');
+      results.innerHTML = '';
+      if (!query) return;
+
+      const matches = [];
+      sections.forEach(section => {
+        const text = section.textContent.toLowerCase();
+        if (text.includes(query)) {
+          const title = section.querySelector('h2')?.textContent || section.id;
+          matches.push({ id: section.id, title });
+        }
+      });
+
+      if (!matches.length) {
+        const div = document.createElement('div');
+        div.className = 'search-result';
+        div.textContent = 'No matches found.';
+        results.appendChild(div);
+        return;
+      }
+
+      matches.slice(0, 6).forEach(match => {
+        const btn = document.createElement('button');
+        btn.className = 'search-result';
+        btn.textContent = match.title;
+        btn.onclick = () => goToSection(match.id);
+        results.appendChild(btn);
+      });
+    }
+
+    function sanitizeSeq(seq, allowed) {
+      return seq.toUpperCase().replace(/[^A-Z]/g, '').split('').filter(ch => allowed.includes(ch)).join('');
+    }
+
+    function makeComplement() {
+      const seq = sanitizeSeq(document.getElementById('dnaInput').value, ['A','T','G','C']);
+      const map = { A:'T', T:'A', G:'C', C:'G' };
+      document.getElementById('dnaComplement').textContent = seq ? seq.split('').map(b => map[b]).join('') : 'Enter a DNA sequence.';
+    }
+
+    function analyzeMutation() {
+      const orig = sanitizeSeq(document.getElementById('origSeq').value, ['A','T','G','C']);
+      const mut = sanitizeSeq(document.getElementById('mutSeq').value, ['A','T','G','C']);
+      let result = 'Enter both sequences.';
+      if (orig && mut) {
+        if (orig === mut) result = 'No mutation detected.';
+        else if (orig.length === mut.length) {
+          let diffs = 0;
+          for (let i = 0; i < orig.length; i++) if (orig[i] !== mut[i]) diffs++;
+          result = diffs === 1 ? 'Substitution' : 'Multiple substitutions or complex change';
+        } else if (mut.length > orig.length) result = 'Insertion; may cause a frameshift if not in groups of 3';
+        else result = 'Deletion; may cause a frameshift if not in groups of 3';
+      }
+      document.getElementById('mutationResult').textContent = result;
+    }
+
+    const codonTable = {
+      AUG:'Methionine', UCC:'Serine', AAU:'Asparagine', UGU:'Cysteine', CCC:'Proline', GAG:'Glutamic acid', UGG:'Tryptophan', CAC:'Histidine', CUA:'Leucine', GGG:'Glycine', UAA:'STOP', UAG:'STOP', UGA:'STOP', GUC:'Valine', CAA:'Glutamine', GAA:'Glutamic acid', UUU:'Phenylalanine', UUC:'Phenylalanine', AUA:'Isoleucine', AUU:'Isoleucine', AUC:'Isoleucine', GCU:'Alanine', CGA:'Arginine', ACC:'Threonine', CUG:'Leucine', GAC:'Aspartic acid', GGU:'Glycine', UAC:'Tyrosine', ACG:'Threonine', UUA:'Leucine', ACA:'Threonine', CCU:'Proline', AGG:'Arginine', UCA:'Serine', CGC:'Arginine', GCA:'Alanine', UCU:'Serine'
+    };
+
+    function transcribeTranslate() {
+      const dna = sanitizeSeq(document.getElementById('dnaToRnaInput').value, ['A','T','G','C']);
+      const map = { A:'U', T:'A', G:'C', C:'G' };
+      const rna = dna.split('').map(b => map[b]).join('');
+      const codons = rna.match(/.{1,3}/g) || [];
+      const aas = codons.map(c => c.length === 3 ? (codonTable[c] || 'unknown') : 'incomplete codon');
+      document.getElementById('rnaOutput').textContent = rna || 'Enter a DNA sequence.';
+      document.getElementById('aaOutput').textContent = aas.length ? aas.join(' – ') : '—';
+    }
+
+    const flashcards = [
+      ['What does p53 do?', 'p53 helps detect DNA damage, repair mistakes, stop the cell cycle, or destroy badly damaged cells.'],
+      ['What happens in S phase?', 'DNA is replicated or copied.'],
+      ['What is metastasis?', 'Cancer spreading to other parts of the body.'],
+      ['What is Chargaff’s rule?', 'A pairs with T, and G pairs with C; A and T are present in similar amounts, as are G and C.'],
+      ['What is a frameshift?', 'An insertion or deletion that changes how codons are read.'],
+      ['How does DNA determine protein?', 'The base sequence determines RNA codons, which determine amino acid order.'],
+      ['Why does protein shape matter?', 'Protein shape determines how well a protein can do its job.'],
+      ['Why can older people have higher cancer risk?', 'Older people have had more cell divisions, so there have been more chances for mutations to build up.']
+    ];
+    let cardIndex = 0;
+    let cardFlipped = false;
+
+    function renderCard() {
+      document.getElementById('flashLabel').textContent = cardFlipped ? 'Answer' : 'Question';
+      document.getElementById('flashText').textContent = flashcards[cardIndex][cardFlipped ? 1 : 0];
+      if (!progress.cardsViewed.includes(cardIndex)) {
+        progress.cardsViewed.push(cardIndex);
+        saveProgress();
+      }
+    }
+    function flipCard() { cardFlipped = !cardFlipped; renderCard(); }
+    function nextCard() { cardIndex = (cardIndex + 1) % flashcards.length; cardFlipped = false; renderCard(); }
+    function prevCard() { cardIndex = (cardIndex - 1 + flashcards.length) % flashcards.length; cardFlipped = false; renderCard(); }
+
+    const quiz = [
+      {q:'Which phase copies DNA?', choices:['G1','S','G2','M'], a:1, exp:'DNA replication occurs during S phase.'},
+      {q:'Which base pairs with adenine in DNA?', choices:['U','G','T','C'], a:2, exp:'In DNA, A pairs with T.'},
+      {q:'What is a mutation?', choices:['A change in DNA','A protein shape','A cell organelle','A tissue'], a:0, exp:'A mutation is a change in DNA sequence.'},
+      {q:'What type of tumor invades and spreads?', choices:['Benign','Malignant','Stable','Silent'], a:1, exp:'Malignant tumors are cancerous and can spread.'},
+      {q:'Why can taller people have higher cancer risk?', choices:['They have no p53','They have more cells','They have less DNA','Their DNA cannot unzip'], a:1, exp:'More cells means more total cell divisions and more chances for mutation.'},
+      {q:'What does AUG usually signal?', choices:['Stop','Start','Mutation','Deletion'], a:1, exp:'AUG is the start codon and codes for methionine.'},
+      {q:'Which mutation often causes the biggest effect?', choices:['Silent','Frameshift','No mutation','Same-sense'], a:1, exp:'Frameshifts can change many codons after the mutation.'},
+      {q:'What does p53 help prevent?', choices:['All protein formation','Damaged cells dividing','DNA unzipping','RNA pairing with U'], a:1, exp:'p53 helps stop or repair cells with DNA damage.'},
+      {q:'What are the sides of DNA made of?', choices:['Base pairs','Sugar and phosphate','Amino acids','RNA codons'], a:1, exp:'The DNA backbone is made of sugar and phosphate.'},
+      {q:'What are the rungs of DNA made of?', choices:['Base pairs','Sugar only','Phosphate only','Proteins'], a:0, exp:'The rungs are paired bases: A-T and G-C.'},
+      {q:'If A is 24%, what is T most likely?', choices:['12%','24%','48%','76%'], a:1, exp:'Chargaff’s rule says A and T are present in similar amounts.'},
+      {q:'What does antiparallel mean?', choices:['Same direction','Opposite directions','Random order','No structure'], a:1, exp:'The two DNA strands run in opposite directions.'},
+      {q:'What happens first in DNA replication?', choices:['DNA unzips','Protein folds','RNA leaves nucleus','Cell divides'], a:0, exp:'DNA must unzip so bases are exposed for copying.'},
+      {q:'What is the purpose of checkpoints?', choices:['Speed up division','Check for errors','Make RNA','Destroy all cells'], a:1, exp:'Checkpoints help make sure the cell is ready to continue.'},
+      {q:'What happens if mutations are not repaired?', choices:['They always disappear','Cells may become cancerous','DNA turns into RNA','All proteins improve'], a:1, exp:'Unrepaired mutations can affect cell behavior and contribute to cancer.'},
+      {q:'Which is a DNA to RNA transcription rule?', choices:['A → U','A → T','G → T','C → A'], a:0, exp:'During transcription, DNA A pairs with RNA U.'},
+      {q:'What is a codon?', choices:['Three RNA bases','A tumor','A chromosome pair','A DNA backbone'], a:0, exp:'A codon is a group of three RNA bases.'},
+      {q:'Why does protein shape matter?', choices:['Shape affects function','Shape changes DNA letters','Shape stops codons','Shape removes chromosomes'], a:0, exp:'A protein’s shape helps determine what it can do.'},
+      {q:'Which mutation changes one base?', choices:['Substitution','Deletion','Insertion','Metastasis'], a:0, exp:'A substitution replaces one base with another.'},
+      {q:'Which mutation removes bases?', choices:['Insertion','Deletion','Silent','Benign'], a:1, exp:'A deletion removes bases from the sequence.'},
+      {q:'Why did scientists study animals like mice?', choices:['Cancer only happens in mice','They help model cancer in living systems','Mice have no DNA','Mice never get tumors'], a:1, exp:'Animal models help scientists study cancer in a living system.'},
+      {q:'Why were large animals expected to get more cancer?', choices:['More cells and longer lives','No cell cycle','Less DNA repair','They are all polluted'], a:0, exp:'More cells and more time should mean more chances for mutations.'},
+      {q:'Why do elephants rarely get cancer?', choices:['Extra p53 copies','No chromosomes','No cell division','Only benign tumors'], a:0, exp:'Extra p53 copies may help elephants protect against cancer.'},
+      {q:'What is metastasis?', choices:['DNA copying','Cancer spreading','Protein folding','Cell growth only'], a:1, exp:'Metastasis means cancer has spread.'},
+      {q:'What is mitosis?', choices:['Cell division','DNA transcription','Protein folding','Base pairing'], a:0, exp:'M phase, or mitosis, is when the cell divides.'},
+      {q:'A cell with twice the usual amount of DNA is likely in:', choices:['G1','G2','Before S','No phase'], a:1, exp:'After S phase, DNA has been copied, so the cell has doubled DNA.'},
+      {q:'What happens if a cell divides with damaged DNA?', choices:['Daughter cells may have errors','DNA becomes perfect','p53 disappears','No effect is possible'], a:0, exp:'Damaged DNA can be passed into daughter cells.'},
+      {q:'What does DNA determine directly?', choices:['The order of RNA bases and proteins','The age of the organism only','The number of tissues','The color of ribosomes'], a:0, exp:'DNA sequence determines RNA codons and amino acid order.'},
+      {q:'Which chain best connects DNA to disease?', choices:['DNA change → protein change → cell function change','Protein → DNA → codon → sugar','Cell → organ → nucleotide → base','RNA → tissue → p53 → sugar'], a:0, exp:'A DNA change can lead to protein and cell function changes.'},
+      {q:'Why do not all mutations cause disease?', choices:['Some do not change protein function','All are fixed immediately','DNA has no function','Mutations only happen in plants'], a:0, exp:'Some mutations are silent or do not strongly affect protein function.'}
+    ];
+    let quizIndex = 0;
+    let score = progress.score || 0;
+    let attempts = progress.attempts || 0;
+
+    function renderQuiz() {
+      const item = quiz[quizIndex];
+      document.getElementById('quizQuestion').textContent = item.q;
+      const choicesDiv = document.getElementById('choices');
+      choicesDiv.innerHTML = '';
+      document.getElementById('feedback').className = 'feedback';
+      document.getElementById('feedback').textContent = '';
+      item.choices.forEach((choice, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'choice';
+        btn.textContent = choice;
+        btn.onclick = () => answerQuiz(idx);
+        choicesDiv.appendChild(btn);
+      });
+    }
+
+    function answerQuiz(idx) {
+      const item = quiz[quizIndex];
+      const buttons = document.querySelectorAll('.choice');
+      buttons.forEach((b, i) => {
+        b.disabled = true;
+        if (i === item.a) b.classList.add('correct');
+        if (i === idx && i !== item.a) b.classList.add('wrong');
+      });
+      attempts++;
+      progress.attempts = attempts;
+      const fb = document.getElementById('feedback');
+      if (idx === item.a) {
+        score++;
+        progress.score = score;
+        fb.className = 'feedback good show';
+        fb.textContent = 'Correct! ' + item.exp;
+      } else {
+        fb.className = 'feedback bad show';
+        fb.textContent = 'Not quite. ' + item.exp;
+      }
+      saveProgress();
+    }
+
+    function nextQuiz() {
+      quizIndex = (quizIndex + 1) % quiz.length;
+      renderQuiz();
+    }
+
+    markVisited('overview');
+    renderCard();
+    renderQuiz();
+    updateProgressDisplay();
+  </script>
+</body>
+</html>
