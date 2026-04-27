@@ -439,6 +439,9 @@
       <button class="nav-btn" data-section="protein">🧪 DNA → Protein</button>
       <button class="nav-btn" data-section="practice">🎯 Practice Zone</button>
       <button class="nav-btn" data-section="synthesis">✍️ Final Synthesis</button>
+      <button class="nav-btn" data-section="advanced">🔥 Hard Mode</button>
+      <button class="nav-btn" data-section="transcription">🧬 Transcription Quiz</button>
+      <button class="nav-btn" data-section="performance">🧪 Performance Simulator</button>
 
       <div class="score-card">
         <strong>Student Progress</strong>
@@ -827,7 +830,12 @@
     const navButtons = document.querySelectorAll('.nav-btn');
     const sectionIds = Array.from(sections).map(section => section.id);
 
-    let progress = JSON.parse(localStorage.getItem('unit3DashboardProgress') || '{"visited":[],"score":0,"attempts":0,"cardsViewed":[]}');
+    const defaultProgress = { visited: [], score: 0, attempts: 0, cardsViewed: [] };
+    let progress = JSON.parse(localStorage.getItem('unit3DashboardProgress') || JSON.stringify(defaultProgress));
+    if (!progress.visited) progress.visited = [];
+    if (!progress.cardsViewed) progress.cardsViewed = [];
+    if (typeof progress.score !== 'number') progress.score = 0;
+    if (typeof progress.attempts !== 'number') progress.attempts = 0;
 
     function saveProgress() {
       localStorage.setItem('unit3DashboardProgress', JSON.stringify(progress));
@@ -842,22 +850,22 @@
     }
 
     function goToSection(sectionId) {
-      navButtons.forEach(b => b.classList.toggle('active', b.dataset.section === sectionId));
-      sections.forEach(sec => sec.classList.toggle('active', sec.id === sectionId));
+      navButtons.forEach(button => button.classList.toggle('active', button.dataset.section === sectionId));
+      sections.forEach(section => section.classList.toggle('active', section.id === sectionId));
       markVisited(sectionId);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    navButtons.forEach(btn => {
-      btn.addEventListener('click', () => goToSection(btn.dataset.section));
+    navButtons.forEach(button => {
+      button.addEventListener('click', () => goToSection(button.dataset.section));
     });
 
     function updateProgressDisplay() {
       const sectionsVisited = progress.visited.length;
       const cardsViewed = progress.cardsViewed.length;
       const quizPct = progress.attempts ? progress.score / progress.attempts : 0;
-      const sectionPct = sectionsVisited / sectionIds.length;
-      const cardPct = cardsViewed / flashcards.length;
+      const sectionPct = sectionIds.length ? sectionsVisited / sectionIds.length : 0;
+      const cardPct = flashcards.length ? cardsViewed / flashcards.length : 0;
       const overall = Math.round(((sectionPct * 0.45) + (quizPct * 0.40) + (cardPct * 0.15)) * 100);
 
       document.getElementById('sectionsVisited').textContent = sectionsVisited;
@@ -870,10 +878,9 @@
 
     function resetProgress() {
       progress = { visited: [], score: 0, attempts: 0, cardsViewed: [] };
-      score = 0;
-      attempts = 0;
       saveProgress();
       renderQuiz();
+      renderCard();
     }
 
     function runSearch() {
@@ -899,12 +906,12 @@
         return;
       }
 
-      matches.slice(0, 6).forEach(match => {
-        const btn = document.createElement('button');
-        btn.className = 'search-result';
-        btn.textContent = match.title;
-        btn.onclick = () => goToSection(match.id);
-        results.appendChild(btn);
+      matches.slice(0, 8).forEach(match => {
+        const button = document.createElement('button');
+        button.className = 'search-result';
+        button.textContent = match.title;
+        button.onclick = () => goToSection(match.id);
+        results.appendChild(button);
       });
     }
 
@@ -913,39 +920,62 @@
     }
 
     function makeComplement() {
-      const seq = sanitizeSeq(document.getElementById('dnaInput').value, ['A','T','G','C']);
-      const map = { A:'T', T:'A', G:'C', C:'G' };
-      document.getElementById('dnaComplement').textContent = seq ? seq.split('').map(b => map[b]).join('') : 'Enter a DNA sequence.';
+      const seq = sanitizeSeq(document.getElementById('dnaInput').value, ['A', 'T', 'G', 'C']);
+      const map = { A: 'T', T: 'A', G: 'C', C: 'G' };
+      document.getElementById('dnaComplement').textContent = seq ? seq.split('').map(base => map[base]).join('') : 'Enter a DNA sequence.';
     }
 
     function analyzeMutation() {
-      const orig = sanitizeSeq(document.getElementById('origSeq').value, ['A','T','G','C']);
-      const mut = sanitizeSeq(document.getElementById('mutSeq').value, ['A','T','G','C']);
+      const orig = sanitizeSeq(document.getElementById('origSeq').value, ['A', 'T', 'G', 'C']);
+      const mut = sanitizeSeq(document.getElementById('mutSeq').value, ['A', 'T', 'G', 'C']);
       let result = 'Enter both sequences.';
       if (orig && mut) {
-        if (orig === mut) result = 'No mutation detected.';
-        else if (orig.length === mut.length) {
+        if (orig === mut) {
+          result = 'No mutation detected.';
+        } else if (orig.length === mut.length) {
           let diffs = 0;
-          for (let i = 0; i < orig.length; i++) if (orig[i] !== mut[i]) diffs++;
+          for (let i = 0; i < orig.length; i++) {
+            if (orig[i] !== mut[i]) diffs++;
+          }
           result = diffs === 1 ? 'Substitution' : 'Multiple substitutions or complex change';
-        } else if (mut.length > orig.length) result = 'Insertion; may cause a frameshift if not in groups of 3';
-        else result = 'Deletion; may cause a frameshift if not in groups of 3';
+        } else if (mut.length > orig.length) {
+          result = 'Insertion; may cause a frameshift if not in groups of 3';
+        } else {
+          result = 'Deletion; may cause a frameshift if not in groups of 3';
+        }
       }
       document.getElementById('mutationResult').textContent = result;
     }
 
     const codonTable = {
-      AUG:'Methionine', UCC:'Serine', AAU:'Asparagine', UGU:'Cysteine', CCC:'Proline', GAG:'Glutamic acid', UGG:'Tryptophan', CAC:'Histidine', CUA:'Leucine', GGG:'Glycine', UAA:'STOP', UAG:'STOP', UGA:'STOP', GUC:'Valine', CAA:'Glutamine', GAA:'Glutamic acid', UUU:'Phenylalanine', UUC:'Phenylalanine', AUA:'Isoleucine', AUU:'Isoleucine', AUC:'Isoleucine', GCU:'Alanine', CGA:'Arginine', ACC:'Threonine', CUG:'Leucine', GAC:'Aspartic acid', GGU:'Glycine', UAC:'Tyrosine', ACG:'Threonine', UUA:'Leucine', ACA:'Threonine', CCU:'Proline', AGG:'Arginine', UCA:'Serine', CGC:'Arginine', GCA:'Alanine', UCU:'Serine'
+      AUG: 'Methionine', UCC: 'Serine', AAU: 'Asparagine', UGU: 'Cysteine', CCC: 'Proline', GAG: 'Glutamic acid', UGG: 'Tryptophan', CAC: 'Histidine', CUA: 'Leucine', GGG: 'Glycine',
+      UAA: 'STOP', UAG: 'STOP', UGA: 'STOP', GUC: 'Valine', CAA: 'Glutamine', GAA: 'Glutamic acid', UUU: 'Phenylalanine', UUC: 'Phenylalanine',
+      AUA: 'Isoleucine', AUU: 'Isoleucine', AUC: 'Isoleucine', GCU: 'Alanine', CGA: 'Arginine', ACC: 'Threonine', CUG: 'Leucine', GAC: 'Aspartic acid',
+      GGU: 'Glycine', UAC: 'Tyrosine', ACG: 'Threonine', UUA: 'Leucine', ACA: 'Threonine', CCU: 'Proline', AGG: 'Arginine', UCA: 'Serine', CGC: 'Arginine',
+      GCA: 'Alanine', UCU: 'Serine', GUU: 'Valine', GUA: 'Valine', GUG: 'Valine', CUC: 'Leucine', CUU: 'Leucine', UUG: 'Leucine', UUA: 'Leucine',
+      ACU: 'Threonine', GCC: 'Alanine', GCG: 'Alanine', GCA: 'Alanine', UAU: 'Tyrosine', CAU: 'Histidine', CAG: 'Glutamine', AAC: 'Asparagine', AAA: 'Lysine', AAG: 'Lysine',
+      GAU: 'Aspartic acid', GGC: 'Glycine', GGA: 'Glycine', GGG: 'Glycine'
     };
 
-    function transcribeTranslate() {
-      const dna = sanitizeSeq(document.getElementById('dnaToRnaInput').value, ['A','T','G','C']);
-      const map = { A:'U', T:'A', G:'C', C:'G' };
-      const rna = dna.split('').map(b => map[b]).join('');
+    function translateRNA(rna) {
       const codons = rna.match(/.{1,3}/g) || [];
-      const aas = codons.map(c => c.length === 3 ? (codonTable[c] || 'unknown') : 'incomplete codon');
+      return codons.map(codon => {
+        if (codon.length !== 3) return 'incomplete codon';
+        return codonTable[codon] || 'unknown';
+      });
+    }
+
+    function transcribeDNA(dna) {
+      const map = { A: 'U', T: 'A', G: 'C', C: 'G' };
+      return dna.split('').map(base => map[base] || '').join('');
+    }
+
+    function transcribeTranslate() {
+      const dna = sanitizeSeq(document.getElementById('dnaToRnaInput').value, ['A', 'T', 'G', 'C']);
+      const rna = transcribeDNA(dna);
+      const aminoAcids = translateRNA(rna);
       document.getElementById('rnaOutput').textContent = rna || 'Enter a DNA sequence.';
-      document.getElementById('aaOutput').textContent = aas.length ? aas.join(' – ') : '—';
+      document.getElementById('aaOutput').textContent = aminoAcids.length ? aminoAcids.join(' – ') : '—';
     }
 
     const flashcards = [
@@ -969,8 +999,18 @@
       ['What is a codon?', 'A group of 3 RNA bases that codes for an amino acid.'],
       ['What is the start codon?', 'AUG, which codes for methionine.'],
       ['What is a benign tumor?', 'A tumor that does not spread.'],
-      ['What is a malignant tumor?', 'A tumor that invades and spreads.']
+      ['What is a malignant tumor?', 'A tumor that invades and spreads.'],
+      ['What are DNA rungs made of?', 'Base pairs: A-T and G-C.'],
+      ['What are DNA sides made of?', 'Sugar and phosphate.'],
+      ['What does antiparallel mean?', 'The two DNA strands run in opposite directions.'],
+      ['Why must DNA unzip?', 'So each strand can be used as a template to build a new complementary strand.'],
+      ['What is a substitution?', 'A mutation where one base is changed to another.'],
+      ['What is an insertion?', 'A mutation where extra base(s) are added.'],
+      ['What is a deletion?', 'A mutation where base(s) are removed.'],
+      ['Why are frameshifts serious?', 'They can change how all codons after the mutation are read.'],
+      ['What is Peto’s paradox?', 'Large animals have more cells but do not necessarily get more cancer.']
     ];
+
     let cardIndex = 0;
     let cardFlipped = false;
 
@@ -982,47 +1022,78 @@
         saveProgress();
       }
     }
-    function flipCard() { cardFlipped = !cardFlipped; renderCard(); }
-    function nextCard() { cardIndex = (cardIndex + 1) % flashcards.length; cardFlipped = false; renderCard(); }
-    function prevCard() { cardIndex = (cardIndex - 1 + flashcards.length) % flashcards.length; cardFlipped = false; renderCard(); }
 
-    let hardMode = false;
+    function flipCard() {
+      cardFlipped = !cardFlipped;
+      renderCard();
+    }
 
-const hardQuiz = [
- {q:'A mutation changes one amino acid. What is most likely affected?',choices:['DNA replication','Protein shape','Cell size','Tissue type'],a:1,exp:'Amino acid change affects protein shape.'},
- {q:'Why does a frameshift mutation often have a large effect?',choices:['It changes one base','It shifts codon reading','It stops DNA','It affects p53 only'],a:1,exp:'Frameshift changes how all codons are read.'}
-];
+    function nextCard() {
+      cardIndex = (cardIndex + 1) % flashcards.length;
+      cardFlipped = false;
+      renderCard();
+    }
 
-const quiz = [
-      {q:'Which phase copies DNA?', choices:['G1','S','G2','M'], a:1, exp:'DNA replication occurs during S phase.'},
-      {q:'Which base pairs with adenine in DNA?', choices:['U','G','T','C'], a:2, exp:'In DNA, A pairs with T.'},
-      {q:'What is a mutation?', choices:['A change in DNA','A protein shape','A cell organelle','A tissue'], a:0, exp:'A mutation is a change in DNA sequence.'},
-      {q:'What type of tumor invades and spreads?', choices:['Benign','Malignant','Stable','Silent'], a:1, exp:'Malignant tumors are cancerous and can spread.'},
-      {q:'Why can taller people have higher cancer risk?', choices:['They have no p53','They have more cells','They have less DNA','Their DNA cannot unzip'], a:1, exp:'More cells means more chances for mutations.'},
-      {q:'What does AUG usually signal?', choices:['Stop','Start','Mutation','Deletion'], a:1, exp:'AUG is the start codon.'},
-      {q:'Which mutation often causes the biggest effect?', choices:['Silent','Frameshift','No mutation','Same-sense'], a:1, exp:'Frameshifts can change many codons.'},
-      {q:'What does p53 help prevent?', choices:['All protein formation','Damaged cells dividing','DNA unzipping','RNA pairing with U'], a:1, exp:'p53 prevents damaged cells from dividing.'},
-      {q:'What are the sides of DNA made of?', choices:['Base pairs','Sugar and phosphate','Amino acids','RNA codons'], a:1, exp:'The backbone is sugar and phosphate.'},
-      {q:'What are the rungs of DNA made of?', choices:['Base pairs','Sugar only','Phosphate only','Proteins'], a:0, exp:'The rungs are base pairs.'},
-      {q:'If A is 24%, what is T?', choices:['12%','24%','48%','76%'], a:1, exp:'Chargaff’s rule: A = T.'},
-      {q:'What does antiparallel mean?', choices:['Same direction','Opposite directions','Random order','No structure'], a:1, exp:'DNA strands run in opposite directions.'},
-      {q:'What happens first in DNA replication?', choices:['DNA unzips','Protein folds','RNA leaves nucleus','Cell divides'], a:0, exp:'DNA must unzip to expose bases.'},
-      {q:'What is the purpose of checkpoints?', choices:['Speed up division','Check for errors','Make RNA','Destroy all cells'], a:1, exp:'Checkpoints ensure the cell is ready to proceed.'},
-      {q:'What happens if mutations are not repaired?', choices:['They always disappear','Cells may become cancerous','DNA turns into RNA','All proteins improve'], a:1, exp:'Unrepaired mutations can lead to cancer.'},
-      {q:'Which is a transcription rule?', choices:['A → U','A → T','G → T','C → A'], a:0, exp:'DNA A pairs with RNA U.'},
-      {q:'What is a codon?', choices:['Three RNA bases','A tumor','A chromosome pair','A DNA backbone'], a:0, exp:'A codon is 3 RNA bases.'},
-      {q:'Why does protein shape matter?', choices:['Shape affects function','Shape changes DNA letters','Shape stops codons','Shape removes chromosomes'], a:0, exp:'Function depends on shape.'},
-      {q:'Which mutation changes one base?', choices:['Substitution','Deletion','Insertion','Metastasis'], a:0, exp:'Substitution changes one base.'},
-      {q:'Which mutation removes bases?', choices:['Insertion','Deletion','Silent','Benign'], a:1, exp:'Deletion removes bases.'},
-      {q:'Why study mice in cancer research?', choices:['They have no DNA','They model living systems','They never get cancer','They lack cells'], a:1, exp:'Mice help study cancer in living systems.'},
-      {q:'Why were large animals expected to get more cancer?', choices:['More cells','Less DNA','No p53','Less mutation'], a:0, exp:'More cells means more division chances.'},
-      {q:'Why do elephants rarely get cancer?', choices:['Extra p53 copies','No DNA','No cell cycle','Only benign tumors'], a:0, exp:'Extra p53 helps protect them.'},
-      {q:'What is mitosis?', choices:['Cell division','DNA copying','Protein folding','Mutation'], a:0, exp:'Mitosis is cell division.'},
-      {q:'What happens if a cell divides with damaged DNA?', choices:['Cells become stronger','Errors pass to daughter cells','DNA repairs instantly','Nothing happens'], a:1, exp:'Errors are passed on.'}
+    function prevCard() {
+      cardIndex = (cardIndex - 1 + flashcards.length) % flashcards.length;
+      cardFlipped = false;
+      renderCard();
+    }
+
+    const quiz = [
+      { q: 'Which phase copies DNA?', choices: ['G1', 'S', 'G2', 'M'], a: 1, exp: 'DNA replication occurs during S phase.' },
+      { q: 'Which base pairs with adenine in DNA?', choices: ['U', 'G', 'T', 'C'], a: 2, exp: 'In DNA, A pairs with T.' },
+      { q: 'What is a mutation?', choices: ['A change in DNA', 'A protein shape', 'A cell organelle', 'A tissue'], a: 0, exp: 'A mutation is a change in DNA sequence.' },
+      { q: 'What type of tumor invades and spreads?', choices: ['Benign', 'Malignant', 'Stable', 'Silent'], a: 1, exp: 'Malignant tumors are cancerous and can spread.' },
+      { q: 'Why can taller people have higher cancer risk?', choices: ['They have no p53', 'They have more cells', 'They have less DNA', 'Their DNA cannot unzip'], a: 1, exp: 'More cells means more chances for mutations.' },
+      { q: 'What does AUG usually signal?', choices: ['Stop', 'Start', 'Mutation', 'Deletion'], a: 1, exp: 'AUG is the start codon.' },
+      { q: 'Which mutation often causes the biggest effect?', choices: ['Silent', 'Frameshift', 'No mutation', 'Same-sense'], a: 1, exp: 'Frameshifts can change many codons.' },
+      { q: 'What does p53 help prevent?', choices: ['All protein formation', 'Damaged cells dividing', 'DNA unzipping', 'RNA pairing with U'], a: 1, exp: 'p53 prevents damaged cells from dividing.' },
+      { q: 'What are the sides of DNA made of?', choices: ['Base pairs', 'Sugar and phosphate', 'Amino acids', 'RNA codons'], a: 1, exp: 'The backbone is sugar and phosphate.' },
+      { q: 'What are the rungs of DNA made of?', choices: ['Base pairs', 'Sugar only', 'Phosphate only', 'Proteins'], a: 0, exp: 'The rungs are base pairs.' },
+      { q: 'If A is 24%, what is T?', choices: ['12%', '24%', '48%', '76%'], a: 1, exp: 'Chargaff’s rule: A = T.' },
+      { q: 'What does antiparallel mean?', choices: ['Same direction', 'Opposite directions', 'Random order', 'No structure'], a: 1, exp: 'DNA strands run in opposite directions.' },
+      { q: 'What happens first in DNA replication?', choices: ['DNA unzips', 'Protein folds', 'RNA leaves nucleus', 'Cell divides'], a: 0, exp: 'DNA must unzip to expose bases.' },
+      { q: 'What is the purpose of checkpoints?', choices: ['Speed up division', 'Check for errors', 'Make RNA', 'Destroy all cells'], a: 1, exp: 'Checkpoints ensure the cell is ready to proceed.' },
+      { q: 'What happens if mutations are not repaired?', choices: ['They always disappear', 'Cells may become cancerous', 'DNA turns into RNA', 'All proteins improve'], a: 1, exp: 'Unrepaired mutations can lead to cancer.' },
+      { q: 'Which is a transcription rule?', choices: ['A → U', 'A → T', 'G → T', 'C → A'], a: 0, exp: 'DNA A pairs with RNA U.' },
+      { q: 'What is a codon?', choices: ['Three RNA bases', 'A tumor', 'A chromosome pair', 'A DNA backbone'], a: 0, exp: 'A codon is 3 RNA bases.' },
+      { q: 'Why does protein shape matter?', choices: ['Shape affects function', 'Shape changes DNA letters', 'Shape stops codons', 'Shape removes chromosomes'], a: 0, exp: 'Function depends on shape.' },
+      { q: 'Which mutation changes one base?', choices: ['Substitution', 'Deletion', 'Insertion', 'Metastasis'], a: 0, exp: 'Substitution changes one base.' },
+      { q: 'Which mutation removes bases?', choices: ['Insertion', 'Deletion', 'Silent', 'Benign'], a: 1, exp: 'Deletion removes bases.' },
+      { q: 'Why study mice in cancer research?', choices: ['They have no DNA', 'They model living systems', 'They never get cancer', 'They lack cells'], a: 1, exp: 'Mice help study cancer in living systems.' },
+      { q: 'Why were large animals expected to get more cancer?', choices: ['More cells', 'Less DNA', 'No p53', 'Less mutation'], a: 0, exp: 'More cells means more division chances.' },
+      { q: 'Why do elephants rarely get cancer?', choices: ['Extra p53 copies', 'No DNA', 'No cell cycle', 'Only benign tumors'], a: 0, exp: 'Extra p53 helps protect them.' },
+      { q: 'What is mitosis?', choices: ['Cell division', 'DNA copying', 'Protein folding', 'Mutation'], a: 0, exp: 'Mitosis is cell division.' },
+      { q: 'What happens if a cell divides with damaged DNA?', choices: ['Cells become stronger', 'Errors pass to daughter cells', 'DNA repairs instantly', 'Nothing happens'], a: 1, exp: 'Errors are passed on.' },
+      { q: 'What is the basic unit of life?', choices: ['Tissue', 'Organ', 'Cell', 'System'], a: 2, exp: 'Cells are the basic unit of life.' },
+      { q: 'What does metastasis mean?', choices: ['Cancer spreading', 'DNA copying', 'Protein folding', 'Cell growth only'], a: 0, exp: 'Metastasis means cancer spreads.' },
+      { q: 'Which tumor type does not spread?', choices: ['Malignant', 'Benign', 'Metastatic', 'Frameshift'], a: 1, exp: 'Benign tumors do not spread.' },
+      { q: 'What shape is DNA?', choices: ['Double helix', 'Circle', 'Cube', 'Flat sheet'], a: 0, exp: 'DNA has a double helix shape.' },
+      { q: 'DNA is made of repeating units called:', choices: ['Amino acids', 'Nucleotides', 'Tissues', 'Tumors'], a: 1, exp: 'DNA is made of nucleotides.' },
+      { q: 'Which base pairs with G?', choices: ['A', 'T', 'C', 'U'], a: 2, exp: 'G pairs with C.' },
+      { q: 'Which sequence complements ATGC?', choices: ['TACG', 'UACG', 'ATGC', 'CGTA'], a: 0, exp: 'A-T and G-C, so ATGC complements TACG.' },
+      { q: 'What does a STOP codon do?', choices: ['Starts protein building', 'Stops protein building', 'Repairs DNA', 'Copies DNA'], a: 1, exp: 'Stop codons end translation.' },
+      { q: 'Which process makes RNA from DNA?', choices: ['Translation', 'Transcription', 'Mitosis', 'Metastasis'], a: 1, exp: 'Transcription makes RNA from DNA.' },
+      { q: 'Which process makes protein from RNA?', choices: ['Translation', 'Replication', 'Metastasis', 'Transcription'], a: 0, exp: 'Translation uses RNA to make proteins.' },
+      { q: 'Why must DNA replicate before cell division?', choices: ['So each new cell gets DNA', 'So DNA disappears', 'So RNA becomes sugar', 'So proteins stop'], a: 0, exp: 'Each daughter cell needs a copy of DNA.' }
     ];
+
+    const hardQuiz = [
+      { q: 'A mutation changes one amino acid. What is most likely affected?', choices: ['DNA replication only', 'Protein shape or function', 'The number of chromosomes only', 'Tissue organization only'], a: 1, exp: 'Amino acid changes can affect protein shape and function.' },
+      { q: 'Why does a frameshift mutation often have a large effect?', choices: ['It changes how codons are grouped', 'It never changes amino acids', 'It only affects p53', 'It stops DNA from unzipping'], a: 0, exp: 'Frameshifts change the reading frame, affecting many codons.' },
+      { q: 'A normal cell has DNA damage, but p53 works correctly. What should happen?', choices: ['The cell keeps dividing with damage', 'The cell repairs the damage or stops', 'The cell becomes malignant immediately', 'The DNA turns into protein'], a: 1, exp: 'Functional p53 helps repair damage or stop damaged cells.' },
+      { q: 'A DNA mutation changes a codon but the same amino acid is added. What kind of effect is most likely?', choices: ['Silent or little effect', 'Large frameshift', 'Metastasis', 'Chromosome doubling'], a: 0, exp: 'Some codon changes do not change the amino acid.' },
+      { q: 'Which chain best explains how a DNA change can cause disease?', choices: ['DNA change → RNA codon change → amino acid change → protein change → cell function change', 'Protein change → DNA disappears → tissue forms → cancer always happens', 'RNA change → DNA base pairing stops forever', 'Cell division → no mutation → no protein'], a: 0, exp: 'This is the full structure-function cause/effect chain.' },
+      { q: 'Why might two countries with similar average height have different cancer rates?', choices: ['Environmental and lifestyle factors may differ', 'They must have identical cancer rates', 'Height is the only factor', 'DNA cannot mutate in one country'], a: 0, exp: 'Cancer risk is influenced by multiple factors, including environment.' },
+      { q: 'If p53 fails at a checkpoint, what is the most likely risk?', choices: ['Cells divide with errors', 'DNA becomes perfect', 'All mutations are removed', 'Mitosis stops forever'], a: 0, exp: 'Checkpoint failure can allow damaged cells to divide.' },
+      { q: 'Why does DNA structure support replication?', choices: ['Base pairing lets each strand serve as a template', 'DNA has no pattern', 'Proteins are made of sugar', 'p53 creates all bases'], a: 0, exp: 'Complementary base pairing is the key to copying DNA.' },
+      { q: 'A protein folds differently after a mutation. What is the best prediction?', choices: ['Its function may change', 'It will always work better', 'It becomes DNA', 'It cannot affect cells'], a: 0, exp: 'Protein shape affects function.' },
+      { q: 'Why do not all mutations lead to cancer?', choices: ['Some are repaired or do not affect important proteins', 'All mutations are cancer', 'Mutations only happen in animals', 'DNA changes cannot affect cells'], a: 0, exp: 'Some mutations are repaired, silent, or unrelated to cancer.' }
+    ];
+
     let quizIndex = 0;
-    let score = progress.score || 0;
-    let attempts = progress.attempts || 0;
+    let hardIndex = 0;
 
     function renderQuiz() {
       const item = quiz[quizIndex];
@@ -1032,33 +1103,31 @@ const quiz = [
       document.getElementById('feedback').className = 'feedback';
       document.getElementById('feedback').textContent = '';
       item.choices.forEach((choice, idx) => {
-        const btn = document.createElement('button');
-        btn.className = 'choice';
-        btn.textContent = choice;
-        btn.onclick = () => answerQuiz(idx);
-        choicesDiv.appendChild(btn);
+        const button = document.createElement('button');
+        button.className = 'choice';
+        button.textContent = choice;
+        button.onclick = () => answerQuiz(idx);
+        choicesDiv.appendChild(button);
       });
     }
 
     function answerQuiz(idx) {
       const item = quiz[quizIndex];
-      const buttons = document.querySelectorAll('.choice');
-      buttons.forEach((b, i) => {
-        b.disabled = true;
-        if (i === item.a) b.classList.add('correct');
-        if (i === idx && i !== item.a) b.classList.add('wrong');
+      const buttons = document.querySelectorAll('#choices .choice');
+      buttons.forEach((button, i) => {
+        button.disabled = true;
+        if (i === item.a) button.classList.add('correct');
+        if (i === idx && i !== item.a) button.classList.add('wrong');
       });
-      attempts++;
-      progress.attempts = attempts;
-      const fb = document.getElementById('feedback');
+      progress.attempts++;
+      const feedback = document.getElementById('feedback');
       if (idx === item.a) {
-        score++;
-        progress.score = score;
-        fb.className = 'feedback good show';
-        fb.textContent = 'Correct! ' + item.exp;
+        progress.score++;
+        feedback.className = 'feedback good show';
+        feedback.textContent = 'Correct! ' + item.exp;
       } else {
-        fb.className = 'feedback bad show';
-        fb.textContent = 'Not quite. ' + item.exp;
+        feedback.className = 'feedback bad show';
+        feedback.textContent = 'Not quite. ' + item.exp;
       }
       saveProgress();
     }
@@ -1068,63 +1137,78 @@ const quiz = [
       renderQuiz();
     }
 
-    let hardIndex = 0;
-    function toggleHardMode(){
+    function renderHard() {
+      const item = hardQuiz[hardIndex];
+      document.getElementById('hardQuestion').textContent = item.q;
+      const div = document.getElementById('hardChoices');
+      div.innerHTML = '';
+      document.getElementById('hardFeedback').className = 'feedback';
+      document.getElementById('hardFeedback').textContent = '';
+      item.choices.forEach((choice, idx) => {
+        const button = document.createElement('button');
+        button.className = 'choice';
+        button.textContent = choice;
+        button.onclick = () => {
+          const feedback = document.getElementById('hardFeedback');
+          const buttons = document.querySelectorAll('#hardChoices .choice');
+          buttons.forEach((b, i) => {
+            b.disabled = true;
+            if (i === item.a) b.classList.add('correct');
+            if (i === idx && i !== item.a) b.classList.add('wrong');
+          });
+          if (idx === item.a) {
+            feedback.textContent = 'Correct! ' + item.exp;
+            feedback.className = 'feedback good show';
+          } else {
+            feedback.textContent = 'Try again. ' + item.exp;
+            feedback.className = 'feedback bad show';
+          }
+        };
+        div.appendChild(button);
+      });
+    }
+
+    function toggleHardMode() {
       goToSection('advanced');
       renderHard();
     }
 
-    function renderHard(){
-      const item = hardQuiz[hardIndex];
-      document.getElementById('hardQuestion').textContent = item.q;
-      const div = document.getElementById('hardChoices');
-      div.innerHTML='';
-      item.choices.forEach((c,i)=>{
-        const b=document.createElement('button');
-        b.className='choice';
-        b.textContent=c;
-        b.onclick=()=>{
-          const fb=document.getElementById('hardFeedback');
-          if(i===item.a){fb.textContent='Correct! '+item.exp;fb.className='feedback good show';}
-          else{fb.textContent='Try again. '+item.exp;fb.className='feedback bad show';}
-        };
-        div.appendChild(b);
-      });
-    }
-
-    function nextHard(){
-      hardIndex=(hardIndex+1)%hardQuiz.length;
+    function nextHard() {
+      hardIndex = (hardIndex + 1) % hardQuiz.length;
       renderHard();
     }
 
-    function checkTT(){
-      const dna=document.getElementById('ttInput').value.toUpperCase();
-      const map={A:'U',T:'A',G:'C',C:'G'};
-      const rna=dna.split('').map(b=>map[b]||'').join('');
-      document.getElementById('ttRNA').textContent=rna;
-      document.getElementById('ttAA').textContent=rna.match(/.{1,3}/g)?.join(' - ')||'';
+    function checkTT() {
+      const dna = sanitizeSeq(document.getElementById('ttInput').value, ['A', 'T', 'G', 'C']);
+      const rna = transcribeDNA(dna);
+      const aminoAcids = translateRNA(rna);
+      document.getElementById('ttRNA').textContent = rna || 'Enter a DNA sequence.';
+      document.getElementById('ttAA').textContent = aminoAcids.length ? aminoAcids.join(' – ') : '—';
     }
 
-    function checkPerformance(){
-      const text=document.getElementById('perfResponse').value.toLowerCase();
-      let score=0;
-      if(text.includes('dna')) score++;
-      if(text.includes('mutation')) score++;
-      if(text.includes('protein')) score++;
-      if(text.includes('cell')) score++;
-      const fb=document.getElementById('perfFeedback');
-      fb.className='feedback show '+(score>=3?'good':'bad');
-      fb.textContent = score>=3 ? 'Strong explanation! Includes key ideas.' : 'Add more about DNA, mutations, proteins, and cells.';
-    }
-
-
-      quizIndex = (quizIndex + 1) % quiz.length;
-      renderQuiz();
+    function checkPerformance() {
+      const text = document.getElementById('perfResponse').value.toLowerCase();
+      const checks = [
+        { term: 'DNA', found: text.includes('dna') },
+        { term: 'mutation', found: text.includes('mutation') || text.includes('mutations') },
+        { term: 'protein', found: text.includes('protein') || text.includes('amino acid') },
+        { term: 'cell', found: text.includes('cell') || text.includes('cells') },
+        { term: 'function', found: text.includes('function') || text.includes('shape') },
+        { term: 'p53/checkpoint', found: text.includes('p53') || text.includes('checkpoint') }
+      ];
+      const foundCount = checks.filter(check => check.found).length;
+      const missing = checks.filter(check => !check.found).map(check => check.term);
+      const feedback = document.getElementById('perfFeedback');
+      feedback.className = 'feedback show ' + (foundCount >= 4 ? 'good' : 'bad');
+      feedback.textContent = foundCount >= 4
+        ? 'Strong explanation! You included several key ideas. Consider adding any missing ideas: ' + missing.join(', ')
+        : 'Add more key ideas. Missing or unclear: ' + missing.join(', ');
     }
 
     markVisited('overview');
     renderCard();
     renderQuiz();
+    renderHard();
     updateProgressDisplay();
   </script>
 </body>
