@@ -772,6 +772,53 @@
           </div>
         </div>
       </section>
+          <section class="section" id="advanced">
+        <div class="grid">
+          <div class="card span-12">
+            <h2>Hard Mode Practice</h2>
+            <p>Toggle hard mode to answer higher-level application questions similar to test performance tasks.</p>
+            <div class="controls">
+              <button class="primary" onclick="toggleHardMode()">Toggle Hard Mode</button>
+            </div>
+            <div class="quiz-question" id="hardQuestion"></div>
+            <div id="hardChoices"></div>
+            <div class="feedback" id="hardFeedback"></div>
+            <div class="controls">
+              <button class="primary" onclick="nextHard()">Next Hard Question</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="transcription">
+        <div class="grid">
+          <div class="card span-12">
+            <h2>Transcription & Translation Quiz</h2>
+            <p>Practice converting DNA → RNA → Protein and check your answers instantly.</p>
+            <input id="ttInput" placeholder="Enter DNA (ex: TACGGA)" />
+            <div class="controls">
+              <button class="primary" onclick="checkTT()">Check Answer</button>
+            </div>
+            <p><strong>RNA:</strong> <span id="ttRNA"></span></p>
+            <p><strong>Amino Acids:</strong> <span id="ttAA"></span></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="performance">
+        <div class="grid">
+          <div class="card span-12">
+            <h2>Performance Task Simulator</h2>
+            <p>Simulate a test-style task: explain how a DNA mutation leads to disease.</p>
+            <textarea id="perfResponse" placeholder="Write your explanation..."></textarea>
+            <div class="controls">
+              <button class="primary" onclick="checkPerformance()">Check Key Ideas</button>
+            </div>
+            <div id="perfFeedback" class="feedback"></div>
+          </div>
+        </div>
+      </section>
+
     </main>
   </div>
 
@@ -909,7 +956,20 @@
       ['What is a frameshift?', 'An insertion or deletion that changes how codons are read.'],
       ['How does DNA determine protein?', 'The base sequence determines RNA codons, which determine amino acid order.'],
       ['Why does protein shape matter?', 'Protein shape determines how well a protein can do its job.'],
-      ['Why can older people have higher cancer risk?', 'Older people have had more cell divisions, so there have been more chances for mutations to build up.']
+      ['Why can older people have higher cancer risk?', 'More cell divisions over time increases chances for mutations.'],
+      ['What is a nucleotide?', 'A building block of DNA made of sugar, phosphate, and a base.'],
+      ['What are the four DNA bases?', 'A, T, G, and C.'],
+      ['What is the cell cycle?', 'The process by which a cell grows and divides.'],
+      ['What happens in G1?', 'The cell grows and carries out normal functions.'],
+      ['What happens in G2?', 'The cell prepares for division and checks DNA.'],
+      ['What is mitosis?', 'The process where one cell divides into two identical cells.'],
+      ['What is a mutation?', 'A change in the DNA sequence.'],
+      ['What is transcription?', 'Copying DNA into RNA.'],
+      ['What is translation?', 'Using RNA to build proteins.'],
+      ['What is a codon?', 'A group of 3 RNA bases that codes for an amino acid.'],
+      ['What is the start codon?', 'AUG, which codes for methionine.'],
+      ['What is a benign tumor?', 'A tumor that does not spread.'],
+      ['What is a malignant tumor?', 'A tumor that invades and spreads.']
     ];
     let cardIndex = 0;
     let cardFlipped = false;
@@ -926,37 +986,39 @@
     function nextCard() { cardIndex = (cardIndex + 1) % flashcards.length; cardFlipped = false; renderCard(); }
     function prevCard() { cardIndex = (cardIndex - 1 + flashcards.length) % flashcards.length; cardFlipped = false; renderCard(); }
 
-    const quiz = [
+    let hardMode = false;
+
+const hardQuiz = [
+ {q:'A mutation changes one amino acid. What is most likely affected?',choices:['DNA replication','Protein shape','Cell size','Tissue type'],a:1,exp:'Amino acid change affects protein shape.'},
+ {q:'Why does a frameshift mutation often have a large effect?',choices:['It changes one base','It shifts codon reading','It stops DNA','It affects p53 only'],a:1,exp:'Frameshift changes how all codons are read.'}
+];
+
+const quiz = [
       {q:'Which phase copies DNA?', choices:['G1','S','G2','M'], a:1, exp:'DNA replication occurs during S phase.'},
       {q:'Which base pairs with adenine in DNA?', choices:['U','G','T','C'], a:2, exp:'In DNA, A pairs with T.'},
       {q:'What is a mutation?', choices:['A change in DNA','A protein shape','A cell organelle','A tissue'], a:0, exp:'A mutation is a change in DNA sequence.'},
       {q:'What type of tumor invades and spreads?', choices:['Benign','Malignant','Stable','Silent'], a:1, exp:'Malignant tumors are cancerous and can spread.'},
-      {q:'Why can taller people have higher cancer risk?', choices:['They have no p53','They have more cells','They have less DNA','Their DNA cannot unzip'], a:1, exp:'More cells means more total cell divisions and more chances for mutation.'},
-      {q:'What does AUG usually signal?', choices:['Stop','Start','Mutation','Deletion'], a:1, exp:'AUG is the start codon and codes for methionine.'},
-      {q:'Which mutation often causes the biggest effect?', choices:['Silent','Frameshift','No mutation','Same-sense'], a:1, exp:'Frameshifts can change many codons after the mutation.'},
-      {q:'What does p53 help prevent?', choices:['All protein formation','Damaged cells dividing','DNA unzipping','RNA pairing with U'], a:1, exp:'p53 helps stop or repair cells with DNA damage.'},
-      {q:'What are the sides of DNA made of?', choices:['Base pairs','Sugar and phosphate','Amino acids','RNA codons'], a:1, exp:'The DNA backbone is made of sugar and phosphate.'},
-      {q:'What are the rungs of DNA made of?', choices:['Base pairs','Sugar only','Phosphate only','Proteins'], a:0, exp:'The rungs are paired bases: A-T and G-C.'},
-      {q:'If A is 24%, what is T most likely?', choices:['12%','24%','48%','76%'], a:1, exp:'Chargaff’s rule says A and T are present in similar amounts.'},
-      {q:'What does antiparallel mean?', choices:['Same direction','Opposite directions','Random order','No structure'], a:1, exp:'The two DNA strands run in opposite directions.'},
-      {q:'What happens first in DNA replication?', choices:['DNA unzips','Protein folds','RNA leaves nucleus','Cell divides'], a:0, exp:'DNA must unzip so bases are exposed for copying.'},
-      {q:'What is the purpose of checkpoints?', choices:['Speed up division','Check for errors','Make RNA','Destroy all cells'], a:1, exp:'Checkpoints help make sure the cell is ready to continue.'},
-      {q:'What happens if mutations are not repaired?', choices:['They always disappear','Cells may become cancerous','DNA turns into RNA','All proteins improve'], a:1, exp:'Unrepaired mutations can affect cell behavior and contribute to cancer.'},
-      {q:'Which is a DNA to RNA transcription rule?', choices:['A → U','A → T','G → T','C → A'], a:0, exp:'During transcription, DNA A pairs with RNA U.'},
-      {q:'What is a codon?', choices:['Three RNA bases','A tumor','A chromosome pair','A DNA backbone'], a:0, exp:'A codon is a group of three RNA bases.'},
-      {q:'Why does protein shape matter?', choices:['Shape affects function','Shape changes DNA letters','Shape stops codons','Shape removes chromosomes'], a:0, exp:'A protein’s shape helps determine what it can do.'},
-      {q:'Which mutation changes one base?', choices:['Substitution','Deletion','Insertion','Metastasis'], a:0, exp:'A substitution replaces one base with another.'},
-      {q:'Which mutation removes bases?', choices:['Insertion','Deletion','Silent','Benign'], a:1, exp:'A deletion removes bases from the sequence.'},
-      {q:'Why did scientists study animals like mice?', choices:['Cancer only happens in mice','They help model cancer in living systems','Mice have no DNA','Mice never get tumors'], a:1, exp:'Animal models help scientists study cancer in a living system.'},
-      {q:'Why were large animals expected to get more cancer?', choices:['More cells and longer lives','No cell cycle','Less DNA repair','They are all polluted'], a:0, exp:'More cells and more time should mean more chances for mutations.'},
-      {q:'Why do elephants rarely get cancer?', choices:['Extra p53 copies','No chromosomes','No cell division','Only benign tumors'], a:0, exp:'Extra p53 copies may help elephants protect against cancer.'},
-      {q:'What is metastasis?', choices:['DNA copying','Cancer spreading','Protein folding','Cell growth only'], a:1, exp:'Metastasis means cancer has spread.'},
-      {q:'What is mitosis?', choices:['Cell division','DNA transcription','Protein folding','Base pairing'], a:0, exp:'M phase, or mitosis, is when the cell divides.'},
-      {q:'A cell with twice the usual amount of DNA is likely in:', choices:['G1','G2','Before S','No phase'], a:1, exp:'After S phase, DNA has been copied, so the cell has doubled DNA.'},
-      {q:'What happens if a cell divides with damaged DNA?', choices:['Daughter cells may have errors','DNA becomes perfect','p53 disappears','No effect is possible'], a:0, exp:'Damaged DNA can be passed into daughter cells.'},
-      {q:'What does DNA determine directly?', choices:['The order of RNA bases and proteins','The age of the organism only','The number of tissues','The color of ribosomes'], a:0, exp:'DNA sequence determines RNA codons and amino acid order.'},
-      {q:'Which chain best connects DNA to disease?', choices:['DNA change → protein change → cell function change','Protein → DNA → codon → sugar','Cell → organ → nucleotide → base','RNA → tissue → p53 → sugar'], a:0, exp:'A DNA change can lead to protein and cell function changes.'},
-      {q:'Why do not all mutations cause disease?', choices:['Some do not change protein function','All are fixed immediately','DNA has no function','Mutations only happen in plants'], a:0, exp:'Some mutations are silent or do not strongly affect protein function.'}
+      {q:'Why can taller people have higher cancer risk?', choices:['They have no p53','They have more cells','They have less DNA','Their DNA cannot unzip'], a:1, exp:'More cells means more chances for mutations.'},
+      {q:'What does AUG usually signal?', choices:['Stop','Start','Mutation','Deletion'], a:1, exp:'AUG is the start codon.'},
+      {q:'Which mutation often causes the biggest effect?', choices:['Silent','Frameshift','No mutation','Same-sense'], a:1, exp:'Frameshifts can change many codons.'},
+      {q:'What does p53 help prevent?', choices:['All protein formation','Damaged cells dividing','DNA unzipping','RNA pairing with U'], a:1, exp:'p53 prevents damaged cells from dividing.'},
+      {q:'What are the sides of DNA made of?', choices:['Base pairs','Sugar and phosphate','Amino acids','RNA codons'], a:1, exp:'The backbone is sugar and phosphate.'},
+      {q:'What are the rungs of DNA made of?', choices:['Base pairs','Sugar only','Phosphate only','Proteins'], a:0, exp:'The rungs are base pairs.'},
+      {q:'If A is 24%, what is T?', choices:['12%','24%','48%','76%'], a:1, exp:'Chargaff’s rule: A = T.'},
+      {q:'What does antiparallel mean?', choices:['Same direction','Opposite directions','Random order','No structure'], a:1, exp:'DNA strands run in opposite directions.'},
+      {q:'What happens first in DNA replication?', choices:['DNA unzips','Protein folds','RNA leaves nucleus','Cell divides'], a:0, exp:'DNA must unzip to expose bases.'},
+      {q:'What is the purpose of checkpoints?', choices:['Speed up division','Check for errors','Make RNA','Destroy all cells'], a:1, exp:'Checkpoints ensure the cell is ready to proceed.'},
+      {q:'What happens if mutations are not repaired?', choices:['They always disappear','Cells may become cancerous','DNA turns into RNA','All proteins improve'], a:1, exp:'Unrepaired mutations can lead to cancer.'},
+      {q:'Which is a transcription rule?', choices:['A → U','A → T','G → T','C → A'], a:0, exp:'DNA A pairs with RNA U.'},
+      {q:'What is a codon?', choices:['Three RNA bases','A tumor','A chromosome pair','A DNA backbone'], a:0, exp:'A codon is 3 RNA bases.'},
+      {q:'Why does protein shape matter?', choices:['Shape affects function','Shape changes DNA letters','Shape stops codons','Shape removes chromosomes'], a:0, exp:'Function depends on shape.'},
+      {q:'Which mutation changes one base?', choices:['Substitution','Deletion','Insertion','Metastasis'], a:0, exp:'Substitution changes one base.'},
+      {q:'Which mutation removes bases?', choices:['Insertion','Deletion','Silent','Benign'], a:1, exp:'Deletion removes bases.'},
+      {q:'Why study mice in cancer research?', choices:['They have no DNA','They model living systems','They never get cancer','They lack cells'], a:1, exp:'Mice help study cancer in living systems.'},
+      {q:'Why were large animals expected to get more cancer?', choices:['More cells','Less DNA','No p53','Less mutation'], a:0, exp:'More cells means more division chances.'},
+      {q:'Why do elephants rarely get cancer?', choices:['Extra p53 copies','No DNA','No cell cycle','Only benign tumors'], a:0, exp:'Extra p53 helps protect them.'},
+      {q:'What is mitosis?', choices:['Cell division','DNA copying','Protein folding','Mutation'], a:0, exp:'Mitosis is cell division.'},
+      {q:'What happens if a cell divides with damaged DNA?', choices:['Cells become stronger','Errors pass to daughter cells','DNA repairs instantly','Nothing happens'], a:1, exp:'Errors are passed on.'}
     ];
     let quizIndex = 0;
     let score = progress.score || 0;
@@ -1002,6 +1064,60 @@
     }
 
     function nextQuiz() {
+      quizIndex = (quizIndex + 1) % quiz.length;
+      renderQuiz();
+    }
+
+    let hardIndex = 0;
+    function toggleHardMode(){
+      goToSection('advanced');
+      renderHard();
+    }
+
+    function renderHard(){
+      const item = hardQuiz[hardIndex];
+      document.getElementById('hardQuestion').textContent = item.q;
+      const div = document.getElementById('hardChoices');
+      div.innerHTML='';
+      item.choices.forEach((c,i)=>{
+        const b=document.createElement('button');
+        b.className='choice';
+        b.textContent=c;
+        b.onclick=()=>{
+          const fb=document.getElementById('hardFeedback');
+          if(i===item.a){fb.textContent='Correct! '+item.exp;fb.className='feedback good show';}
+          else{fb.textContent='Try again. '+item.exp;fb.className='feedback bad show';}
+        };
+        div.appendChild(b);
+      });
+    }
+
+    function nextHard(){
+      hardIndex=(hardIndex+1)%hardQuiz.length;
+      renderHard();
+    }
+
+    function checkTT(){
+      const dna=document.getElementById('ttInput').value.toUpperCase();
+      const map={A:'U',T:'A',G:'C',C:'G'};
+      const rna=dna.split('').map(b=>map[b]||'').join('');
+      document.getElementById('ttRNA').textContent=rna;
+      document.getElementById('ttAA').textContent=rna.match(/.{1,3}/g)?.join(' - ')||'';
+    }
+
+    function checkPerformance(){
+      const text=document.getElementById('perfResponse').value.toLowerCase();
+      let score=0;
+      if(text.includes('dna')) score++;
+      if(text.includes('mutation')) score++;
+      if(text.includes('protein')) score++;
+      if(text.includes('cell')) score++;
+      const fb=document.getElementById('perfFeedback');
+      fb.className='feedback show '+(score>=3?'good':'bad');
+      fb.textContent = score>=3 ? 'Strong explanation! Includes key ideas.' : 'Add more about DNA, mutations, proteins, and cells.';
+    }
+
+
       quizIndex = (quizIndex + 1) % quiz.length;
       renderQuiz();
     }
