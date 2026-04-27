@@ -449,9 +449,12 @@
         <div class="progress-bar"><div class="progress-fill" id="overallProgressFill"></div></div>
         <small><span id="overallProgressText">0%</span> complete</small>
         <div class="progress-list">
-          <div>Sections visited: <strong><span id="sectionsVisited">0</span>/9</strong></div>
-          <div>Quiz score: <strong><span id="score">0</span>/<span id="attempts">0</span></strong></div>
-          <div>Flashcards viewed: <strong><span id="cardsViewed">0</span>/8</strong></div>
+          <div>Sections visited: <strong><span id="sectionsVisited">0</span>/<span id="totalSections">0</span></strong></div>
+          <div>Flashcards viewed: <strong><span id="cardsViewed">0</span>/<span id="totalCards">0</span></strong></div>
+          <div>Regular quiz: <strong><span id="score">0</span>/<span id="attempts">0</span></strong></div>
+          <div>Hard Mode: <strong><span id="hardScore">0</span>/<span id="hardAttempts">0</span></strong></div>
+          <div>DNA skills completed: <strong><span id="dnaSkillStatus">No</span></strong></div>
+          <div>Performance practice: <strong><span id="performanceStatus">No</span></strong></div>
         </div>
         <button class="secondary mini-btn" onclick="resetProgress()">Reset Progress</button>
       </div>
@@ -830,12 +833,25 @@
     const navButtons = document.querySelectorAll('.nav-btn');
     const sectionIds = Array.from(sections).map(section => section.id);
 
-    const defaultProgress = { visited: [], score: 0, attempts: 0, cardsViewed: [] };
+    const defaultProgress = {
+      visited: [],
+      score: 0,
+      attempts: 0,
+      hardScore: 0,
+      hardAttempts: 0,
+      cardsViewed: [],
+      dnaSkillCompleted: false,
+      performanceCompleted: false
+    };
     let progress = JSON.parse(localStorage.getItem('unit3DashboardProgress') || JSON.stringify(defaultProgress));
     if (!progress.visited) progress.visited = [];
     if (!progress.cardsViewed) progress.cardsViewed = [];
     if (typeof progress.score !== 'number') progress.score = 0;
     if (typeof progress.attempts !== 'number') progress.attempts = 0;
+    if (typeof progress.hardScore !== 'number') progress.hardScore = 0;
+    if (typeof progress.hardAttempts !== 'number') progress.hardAttempts = 0;
+    if (typeof progress.dnaSkillCompleted !== 'boolean') progress.dnaSkillCompleted = false;
+    if (typeof progress.performanceCompleted !== 'boolean') progress.performanceCompleted = false;
 
     function saveProgress() {
       localStorage.setItem('unit3DashboardProgress', JSON.stringify(progress));
@@ -862,22 +878,42 @@
 
     function updateProgressDisplay() {
       const sectionsVisited = progress.visited.length;
+      const totalSections = sectionIds.length;
       const cardsViewed = progress.cardsViewed.length;
+      const totalCards = flashcards.length;
       const quizPct = progress.attempts ? progress.score / progress.attempts : 0;
-      const sectionPct = sectionIds.length ? sectionsVisited / sectionIds.length : 0;
-      const cardPct = flashcards.length ? cardsViewed / flashcards.length : 0;
-      const overall = Math.round(((sectionPct * 0.45) + (quizPct * 0.40) + (cardPct * 0.15)) * 100);
+      const hardPct = progress.hardAttempts ? progress.hardScore / progress.hardAttempts : 0;
+      const sectionPct = totalSections ? sectionsVisited / totalSections : 0;
+      const cardPct = totalCards ? cardsViewed / totalCards : 0;
+      const dnaPct = progress.dnaSkillCompleted ? 1 : 0;
+      const performancePct = progress.performanceCompleted ? 1 : 0;
+      const overall = Math.round(((sectionPct * 0.25) + (cardPct * 0.15) + (quizPct * 0.20) + (hardPct * 0.15) + (dnaPct * 0.10) + (performancePct * 0.15)) * 100);
 
       document.getElementById('sectionsVisited').textContent = sectionsVisited;
+      document.getElementById('totalSections').textContent = totalSections;
       document.getElementById('cardsViewed').textContent = cardsViewed;
+      document.getElementById('totalCards').textContent = totalCards;
       document.getElementById('score').textContent = progress.score;
       document.getElementById('attempts').textContent = progress.attempts;
+      document.getElementById('hardScore').textContent = progress.hardScore;
+      document.getElementById('hardAttempts').textContent = progress.hardAttempts;
+      document.getElementById('dnaSkillStatus').textContent = progress.dnaSkillCompleted ? 'Yes' : 'No';
+      document.getElementById('performanceStatus').textContent = progress.performanceCompleted ? 'Yes' : 'No';
       document.getElementById('overallProgressText').textContent = overall + '%';
       document.getElementById('overallProgressFill').style.width = overall + '%';
     }
 
     function resetProgress() {
-      progress = { visited: [], score: 0, attempts: 0, cardsViewed: [] };
+      progress = {
+        visited: [],
+        score: 0,
+        attempts: 0,
+        hardScore: 0,
+        hardAttempts: 0,
+        cardsViewed: [],
+        dnaSkillCompleted: false,
+        performanceCompleted: false
+      };
       saveProgress();
       renderQuiz();
       renderCard();
@@ -1156,13 +1192,16 @@
             if (i === item.a) b.classList.add('correct');
             if (i === idx && i !== item.a) b.classList.add('wrong');
           });
+          progress.hardAttempts++;
           if (idx === item.a) {
+            progress.hardScore++;
             feedback.textContent = 'Correct! ' + item.exp;
             feedback.className = 'feedback good show';
           } else {
             feedback.textContent = 'Try again. ' + item.exp;
             feedback.className = 'feedback bad show';
           }
+          saveProgress();
         };
         div.appendChild(button);
       });
@@ -1184,6 +1223,10 @@
       const aminoAcids = translateRNA(rna);
       document.getElementById('ttRNA').textContent = rna || 'Enter a DNA sequence.';
       document.getElementById('ttAA').textContent = aminoAcids.length ? aminoAcids.join(' – ') : '—';
+      if (dna && rna && aminoAcids.length) {
+        progress.dnaSkillCompleted = true;
+        saveProgress();
+      }
     }
 
     function checkPerformance() {
@@ -1203,6 +1246,8 @@
       feedback.textContent = foundCount >= 4
         ? 'Strong explanation! You included several key ideas. Consider adding any missing ideas: ' + missing.join(', ')
         : 'Add more key ideas. Missing or unclear: ' + missing.join(', ');
+      progress.performanceCompleted = true;
+      saveProgress();
     }
 
     markVisited('overview');
